@@ -104,7 +104,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
 
 def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
-
+    print('eval dataset:', dataset.cost_data)
     model.to(device)
     model.eval()
 
@@ -113,11 +113,13 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
         temp=softmax_temp)
 
     dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
+    cost_dataloader = DataLoader(dataset.cost_data, batch_size=opts.eval_batch_size)
+    cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
 
     results = []
-    for batch in tqdm(dataloader, disable=opts.no_progress_bar):
+    for id, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         batch = move_to(batch, device)
-
+        cost_data = move_to(cost_dataloader[id])
         start = time.time()
         with torch.no_grad():
             if opts.decode_strategy in ('sample', 'greedy'):
@@ -137,7 +139,7 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                     iter_rep = 1
                 assert batch_rep > 0
                 # This returns (batch_size, iter_rep shape)
-                sequences, costs = model.sample_many(batch, batch_rep=batch_rep, iter_rep=iter_rep)
+                sequences, costs = model.sample_many(batch, cost_data=cost_data, batch_rep=batch_rep, iter_rep=iter_rep)
                 batch_size = len(costs)
                 ids = torch.arange(batch_size, dtype=torch.int64, device=costs.device)
             else:

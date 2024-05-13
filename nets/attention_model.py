@@ -274,7 +274,7 @@ class AttentionModel(nn.Module):
         # Collected lists, return Tensor
         return torch.stack(outputs, 1), torch.stack(sequences, 1)
 
-    def sample_many(self, input, batch_rep=1, iter_rep=1):
+    def sample_many(self, input, cost_data=None, batch_rep=1, iter_rep=1):
         """
         :param input: (batch_size, graph_size, node_dim) input node features
         :return:
@@ -283,7 +283,7 @@ class AttentionModel(nn.Module):
         # Making a tuple will not work with the problem.get_cost function
         return sample_many(
             lambda input: self._inner(*input),  # Need to unpack tuple into arguments
-            lambda input, pi: self.problem.get_costs(input[0], pi),  # Don't need embeddings as input to get_costs
+            lambda input, pi: self.problem.get_costs(input[0], pi, cost_data=cost_data),  # Don't need embeddings as input to get_costs
             (input, self.embedder(self._init_embed(input))[0]),  # Pack input with embeddings (additional input)
             batch_rep, iter_rep
         )
