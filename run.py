@@ -76,7 +76,7 @@ def run(opts):
     model_.load_state_dict({**model_.state_dict(), **load_data.get('model', {})})
 
     # Start the actual training loop
-    update_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.val_size, filename=opts.val_dataset, distribution=opts.data_distribution)
+    eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.val_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
 
     #print('opts.baseline:', opts.baseline)
     # Initialize baseline
@@ -105,7 +105,7 @@ def run(opts):
             ).to(opts.device)
         )
     elif opts.baseline == 'rollout':
-        baseline = RolloutBaseline(model, problem, opts, dataset=update_dataset)
+        baseline = RolloutBaseline(model, problem, opts, dataset=eval_dataset)
     else:
         assert opts.baseline is None, "Unknown baseline: {}".format(opts.baseline)
         baseline = NoBaseline()

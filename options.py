@@ -96,6 +96,8 @@ def get_options(args=None):
         with open(opts.eval_dataset, 'rb') as file:
             temp = pickle.load(file)
             opts.eval_size = len(temp)
+    
+    assert(opts.eval_size == opts.val_size)
 
     if opts.bl_warmup_epochs is None:
         opts.bl_warmup_epochs = 1 if opts.baseline == 'rollout' else 0

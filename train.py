@@ -35,7 +35,7 @@ def rollout(model, dataset, opts):
         with torch.no_grad():
             if dataset.cost_data != None:
                 cost_metric = dataset.cost_data[opts.eval_batch_size*bat_id : 
-                                            opts.eval_batch_size*(bat_id+1)-1]
+                                            opts.eval_batch_size*(bat_id+1)]
                 if isinstance(cost_metric, list):
                     cost_metric = torch.stack(cost_metric)
                 #print('cost metric:', cost_metric)
@@ -45,6 +45,7 @@ def rollout(model, dataset, opts):
                 cost, _ = model(move_to(bat, opts.device))
 
         return cost.data.cpu()
+    
     return torch.cat([
         eval_model_bat(bat, bat_id)
         for bat_id, bat

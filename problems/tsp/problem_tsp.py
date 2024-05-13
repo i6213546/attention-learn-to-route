@@ -12,7 +12,8 @@ class TSP(object):
 
     @staticmethod
     def get_costs(dataset, pi, cost_data=None):
-        print('pi at this step:', len(pi[0]))
+        print('pi at this step:', len(pi))
+        print('len cost data:', len(dataset))
         # Check that tours are valid, i.e. contain 0 to n -1
         assert (
             torch.arange(pi.size(1), out=pi.data.new()).view(1, -1).expand_as(pi) ==
