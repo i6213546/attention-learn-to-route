@@ -27,6 +27,9 @@ code changed:
     reinforcement_baselines.py
         * add cost_data into baseline object
         * change eval func: add optional cost_data params
+    
+    options.py
+        * add extra optional args
 
 
 Run the model: (make sure that the corresponding cost matrix is named by, eg: data/tsp/train_cost.pkl)
