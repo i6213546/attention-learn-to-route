@@ -1,0 +1,33 @@
+problems\op\op_ortools.py: euclidean distance computed
+problems\op\op_gurobi.py: solve euclidean distance constraint optimization
+
+
+training data: len(data) = epoch size?? default = 1 280 000
+training data is self-generating: need to change this to into input data
+
+training data is first wrap up (and evaluated) then unwrap for training
+
+
+code changed:
+    TSP problem file:
+        * pre defined dataset
+        * add cost data into init
+        * change get_costs static function: add optional cost_data parameters and change cost return
+    
+    get_options.py file:
+        * add train_dataset argument
+        * change default val_size
+    
+    attention_model.py:
+        * change forwards function: add optional cost_data parameters
+
+    train.py file:
+        * change rollout function: add optional cost_data param
+
+
+
+Run the model: (make sure that the corresponding cost matrix is named by, eg: data/tsp/train_cost.pkl)
+    input: 20. Change graph_size for running different TSP size
+    python3 run.py --graph_size 20 --baseline rollout --run_name 'tsp20_rollout' --train_dataset data/tsp/train_location.pkl 
+                   --val_dataset data/tsp/val_location.pkl
+                   --eval_dataset data/tsp/eval_location.pkl
