@@ -24,6 +24,9 @@ code changed:
     train.py file:
         * change rollout function: add optional cost_data param
 
+    reinforcement_baselines.py
+        * add cost_data into baseline object
+        * change eval func: add optional cost_data params
 
 
 Run the model: (make sure that the corresponding cost matrix is named by, eg: data/tsp/train_cost.pkl)
