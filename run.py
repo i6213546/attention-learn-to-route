@@ -3,7 +3,7 @@
 import os
 import json
 import pprint as pp
-
+import pickle
 import torch
 import torch.optim as optim
 from tensorboard_logger import Logger as TbLogger
@@ -76,7 +76,7 @@ def run(opts):
     model_.load_state_dict({**model_.state_dict(), **load_data.get('model', {})})
 
     # Start the actual training loop
-    eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.val_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
+    eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.eval_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
 
     #print('opts.baseline:', opts.baseline)
     # Initialize baseline

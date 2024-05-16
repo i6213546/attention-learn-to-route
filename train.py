@@ -45,7 +45,6 @@ def rollout(model, dataset, opts):
                 cost, _ = model(move_to(bat, opts.device))
 
         return cost.data.cpu()
-    
     return torch.cat([
         eval_model_bat(bat, bat_id)
         for bat_id, bat
@@ -95,7 +94,6 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     #print('baseline dataset cost:', training_dataset.cost_data)
     cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
     #print('baseline dataset cost:', cost_dataloader[0])
-    print('len cost data loader:', len(cost_dataloader))
     # Create an empty list to store sets of indices for each batch
     #indices_per_batch = []
     # Iterate over batches

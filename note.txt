@@ -32,6 +32,6 @@ code changed:
 
 Run the model: (make sure that the corresponding cost matrix is named by, eg: data/tsp/train_cost.pkl)
     input: 20. Change graph_size for running different TSP size
-    python3 run.py --graph_size 20 --baseline rollout --run_name 'tsp20_rollout' --train_dataset data/tsp/train_location.pkl 
+    python3 run.py --graph_size 100 --baseline rollout --run_name 'tsp100_rollout' --train_dataset data/tsp/train_location.pkl 
                    --val_dataset data/tsp/val_location.pkl
                    --eval_dataset data/tsp/eval_location.pkl

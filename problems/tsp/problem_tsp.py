@@ -12,8 +12,7 @@ class TSP(object):
 
     @staticmethod
     def get_costs(dataset, pi, cost_data=None):
-        print('pi at this step:', len(pi))
-        print('len cost data:', len(dataset))
+        print('pi at this step:', len(pi[0]))
         # Check that tours are valid, i.e. contain 0 to n -1
         assert (
             torch.arange(pi.size(1), out=pi.data.new()).view(1, -1).expand_as(pi) ==
@@ -73,7 +72,6 @@ class TSPDataset(Dataset):
         self.data_set = []
         if filename is not None:
             assert os.path.splitext(filename)[1] == '.pkl'
-
             with open(filename, 'rb') as f:
                 data = pickle.load(f)
                 self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]

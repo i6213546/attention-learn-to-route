@@ -11,3 +11,4 @@ __pycache__/
 *.bak
 model_examine/
 *copy.ipynb
+test.*
