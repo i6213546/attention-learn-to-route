@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import os
-import pickle
+import pickle, random
 from problems.tsp.state_tsp import StateTSP
 from utils.beam_search import beam_search
 
@@ -12,13 +12,11 @@ class TSP(object):
 
     @staticmethod
     def get_costs(dataset, pi, cost_data=None):
-        print('pi at this step:', len(pi[0]))
         # Check that tours are valid, i.e. contain 0 to n -1
         assert (
             torch.arange(pi.size(1), out=pi.data.new()).view(1, -1).expand_as(pi) ==
             pi.data.sort(1)[0]
         ).all(), "Invalid tour"
-        #print('pi', pi[0])
 
         if cost_data != None:
             # Gather the cost matrix in order of tour
@@ -98,3 +96,10 @@ class TSPDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.data[idx]
+
+    def shuffle_data(self):
+        temp = list(zip(self.data, self.cost_data))
+        random.shuffle(temp)
+        res1, res2 = zip(*temp)
+        # res1 and res2 come out as tuples, and so must be converted to lists.
+        self.data, self.cost_data = list(res1), list(res2)

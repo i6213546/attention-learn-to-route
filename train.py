@@ -16,18 +16,25 @@ def get_inner_model(model):
     return model.module if isinstance(model, DataParallel) else model
 
 
-def validate(model, dataset, opts):
+def validate(model, dataset, opts, return_pi=False):
     # Validate
     print('Validating...')
-    cost = rollout(model, dataset, opts)
+    pi = None
+    if return_pi:
+        cost, pi = rollout(model, dataset, opts, return_pi=return_pi)
+    else:
+        cost     = rollout(model, dataset, opts)
+
     avg_cost = cost.mean()
     print('Validation overall avg_cost: {} +- {}'.format(
         avg_cost, torch.std(cost) / math.sqrt(len(cost))))
+    if return_pi:
+        return avg_cost, pi
+    else:
+        return avg_cost
 
-    return avg_cost
 
-
-def rollout(model, dataset, opts):
+def rollout(model, dataset, opts, return_pi=False):
     # Put in greedy evaluation mode!
     set_decode_type(model, "greedy")
 
@@ -39,17 +46,39 @@ def rollout(model, dataset, opts):
                 if isinstance(cost_metric, list):
                     cost_metric = torch.stack(cost_metric)
                 #print('cost metric:', cost_metric)
-                cost, _ = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device))
+                if return_pi:
+                    cost, _, pi = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device), 
+                                          return_pi=return_pi)
+                    return cost.data.cpu(), pi.data.cpu()
+                else:
+                    cost, _ = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device))
+                    return cost.data.cpu()
             else:
                 print('not access to the costdata')
-                cost, _ = model(move_to(bat, opts.device))
-
-        return cost.data.cpu()
-    return torch.cat([
-        eval_model_bat(bat, bat_id)
-        for bat_id, bat
-        in enumerate(tqdm(DataLoader(dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar))
-    ], 0)
+                if return_pi:
+                    cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi)
+                    return cost.data.cpu(), pi.data.cpu()
+                else:
+                    cost, _ = model(move_to(bat, opts.device))
+                    return cost.data.cpu()
+        
+    if return_pi:
+        ret_cost = torch.tensor([])
+        ret_pi   = torch.tensor([])
+        for bat_id, bat in enumerate(tqdm(DataLoader(dataset, 
+                                                     batch_size=opts.eval_batch_size), 
+                                                     disable=opts.no_progress_bar)):
+            cost_temp, pi_temp = eval_model_bat(bat, bat_id)    
+            ret_cost = torch.cat((ret_cost, cost_temp), dim=0)
+            ret_pi   = torch.cat((ret_pi, pi_temp), dim=0)                 
+        return ret_cost, ret_pi
+    
+    else:
+        return torch.cat([
+            eval_model_bat(bat, bat_id)
+            for bat_id, bat
+            in enumerate(tqdm(DataLoader(dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar))
+        ], 0)
 
 
 def clip_grad_norms(param_groups, max_norm=math.inf):
@@ -93,14 +122,11 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     #batch_sampler = training_dataloader.batch_sampler   
     #print('baseline dataset cost:', training_dataset.cost_data)
     cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
-    #print('baseline dataset cost:', cost_dataloader[0])
     # Create an empty list to store sets of indices for each batch
     #indices_per_batch = []
     # Iterate over batches
     #for batch_indices in batch_sampler:
     #    indices_per_batch.append(list(batch_indices))
-    #print('len batch:', len(indices_per_batch[0]))
-    #print('num batch:', len(indices_per_batch))
     
     # Put model in train mode!
     model.train()

@@ -27,6 +27,9 @@ code changed:
 
     eval.py function:
         * change _eval_dataset function
+    
+    reinfore_baselines.py:
+        * change Rollout init, _update_model, epoch_callback where the new baseline is generated
 
 
 

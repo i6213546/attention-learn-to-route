@@ -78,7 +78,6 @@ def run(opts):
     # Start the actual training loop
     eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.eval_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
 
-    #print('opts.baseline:', opts.baseline)
     # Initialize baseline
     if opts.baseline == 'exponential':
         baseline = ExponentialBaseline(opts.exp_beta)
@@ -159,7 +158,7 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        for epoch in range(4):
+        for epoch in range(2):
             train_epoch(
                 model,
                 optimizer,
@@ -171,7 +170,20 @@ def run(opts):
                 tb_logger,
                 opts
             )
+        
+            cost, pi = validate(model, val_dataset, opts, return_pi=True)
+            print('pi in run.py file:', pi[:5])
+            print('cost in run.py:', cost[:5])
 
 
 if __name__ == "__main__":
     run(get_options())
+    # opts = get_options()
+    # problem = load_problem(opts.problem)
+    # eval_dataset = problem.make_dataset(size=opts.graph_size, 
+    #                                     num_samples=opts.eval_size, 
+    #                                     filename=opts.eval_dataset, 
+    #                                     distribution=opts.data_distribution)
+    # eval_dataset.shuffle_data()
+    # print(eval_dataset.data[0][:5])
+    # print(eval_dataset.cost_data[0][:5])

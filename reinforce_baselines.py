@@ -148,6 +148,7 @@ class RolloutBaseline(Baseline):
         self.problem = problem
         self.opts = opts
 
+        print('in init rollout baseline, dataset:', dataset)
         self._update_model(model, epoch, dataset=dataset)
 
     def _update_model(self, model, epoch, dataset=None):
@@ -170,7 +171,7 @@ class RolloutBaseline(Baseline):
             self.dataset = dataset
             print('baselinedataset fromdataset:', self.dataset)
         
-        print("Evaluating baseline model on evaluation dataset")
+        print("Evaluating baseline model on evaluation dataset, initialize")
         self.bl_vals = rollout(self.model, self.dataset, self.opts).cpu().numpy()
         self.mean = self.bl_vals.mean()
         self.epoch = epoch
@@ -199,7 +200,7 @@ class RolloutBaseline(Baseline):
         :param model: The model to challenge the baseline by
         :param epoch: The current epoch
         """
-        print("Evaluating candidate model on evaluation dataset")
+        print("Evaluating candidate model on evaluation dataset, epoch callback")
         candidate_vals = rollout(model, self.dataset, self.opts).cpu().numpy()
 
         candidate_mean = candidate_vals.mean()
@@ -215,7 +216,8 @@ class RolloutBaseline(Baseline):
             print("p-value: {}".format(p_val))
             if p_val < self.opts.bl_alpha:
                 print('Update baseline')
-                self._update_model(model, epoch)
+                ### here new dataset is used, should be replace by: (shuffling?)
+                self._update_model(model, epoch, dataset=self.dataset.shuffle_data())
 
     def state_dict(self):
         return {
@@ -224,11 +226,11 @@ class RolloutBaseline(Baseline):
             'epoch': self.epoch
         }
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict, dataset=None):
         # We make it such that it works whether model was saved as data parallel or not
         load_model = copy.deepcopy(self.model)
         get_inner_model(load_model).load_state_dict(get_inner_model(state_dict['model']).state_dict())
-        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'])
+        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'], dataset=dataset)
 
 
 class BaselineDataset(Dataset):
