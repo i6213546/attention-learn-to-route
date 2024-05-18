@@ -11,12 +11,18 @@ from nets.attention_model import set_decode_type
 from utils.log_utils import log_values
 from utils import move_to
 
+# function used for shifting the tour so that 0 is the starting point (depot)
+def shift_row(row):
+    zero_index = (row == 0).nonzero(as_tuple=True)[0].item()
+    part1 = row[zero_index:]  # From value 0 to the end
+    part2 = row[:zero_index]  # From the beginning to value 0
+    return torch.cat((part1, part2))
 
 def get_inner_model(model):
     return model.module if isinstance(model, DataParallel) else model
 
 
-def validate(model, dataset, opts, return_pi=False):
+def validate(model, dataset, opts, return_pi=False, sorted_pi=False):
     # Validate
     print('Validating...')
     pi = None
@@ -28,6 +34,10 @@ def validate(model, dataset, opts, return_pi=False):
     avg_cost = cost.mean()
     print('Validation overall avg_cost: {} +- {}'.format(
         avg_cost, torch.std(cost) / math.sqrt(len(cost))))
+    
+    if sorted_pi:
+        pi = torch.stack([shift_row(row) for row in pi])
+
     if return_pi:
         return avg_cost, pi
     else:
@@ -112,6 +122,9 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     # Generate new training data for each epoch
     training = problem.make_dataset(filename=opts.train_dataset,
         size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution)
+    # shuffling data after every re-train
+    training.shuffle_data()
+
     print('base line:', baseline)
     training_dataset = baseline.wrap_dataset(training)
     #training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)

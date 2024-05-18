@@ -171,9 +171,8 @@ def run(opts):
                 opts
             )
         
-            cost, pi = validate(model, val_dataset, opts, return_pi=True)
-            print('pi in run.py file:', pi[:5])
-            print('cost in run.py:', cost[:5])
+            cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+            print('pi in run.py file:', pi)
 
 
 if __name__ == "__main__":

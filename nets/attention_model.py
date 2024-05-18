@@ -52,7 +52,8 @@ class AttentionModel(nn.Module):
                  normalization='batch',
                  n_heads=8,
                  checkpoint_encoder=False,
-                 shrink_size=None):
+                 shrink_size=None,
+                ):
         super(AttentionModel, self).__init__()
 
         self.embedding_dim = embedding_dim
@@ -253,7 +254,7 @@ class AttentionModel(nn.Module):
 
             # Select the indices of the next nodes in the sequences, result (batch_size) long
             selected = self._select_node(log_p.exp()[:, 0, :], mask[:, 0, :])  # Squeeze out steps dimension
-
+            
             state = state.update(selected)
 
             # Now make log_p, selected desired output size by 'unshrinking'
@@ -268,11 +269,12 @@ class AttentionModel(nn.Module):
             # Collect output of step
             outputs.append(log_p[:, 0, :])
             sequences.append(selected)
-
             i += 1
-        #print('sequences of _inner function in attention model class:', torch.stack(sequences, 1)[0])
+        
         # Collected lists, return Tensor
-        return torch.stack(outputs, 1), torch.stack(sequences, 1)
+        ret_outpus = torch.stack(outputs, 1)
+        ret_sequences = torch.stack(sequences, 1)
+        return ret_outpus, ret_sequences
 
     def sample_many(self, input, cost_data=None, batch_rep=1, iter_rep=1):
         """
@@ -299,15 +301,15 @@ class AttentionModel(nn.Module):
 
         elif self.decode_type == "sampling":
             selected = probs.multinomial(1).squeeze(1)
-
             # Check if sampling went OK, can go wrong due to bug on GPU
             # See https://discuss.pytorch.org/t/bad-behavior-of-multinomial-function/10232
             while mask.gather(1, selected.unsqueeze(-1)).data.any():
                 print('Sampled bad values, resampling!')
                 selected = probs.multinomial(1).squeeze(1)
-
         else:
             assert False, "Unknown decode type"
+
+        
         return selected
 
     def _precompute(self, embeddings, num_steps=1):
