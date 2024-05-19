@@ -217,6 +217,7 @@ class RolloutBaseline(Baseline):
             if p_val < self.opts.bl_alpha:
                 print('Update baseline')
                 ### here new dataset is used, should be replace by: (shuffling?)
+                print(self.dataset)
                 self._update_model(model, epoch, dataset=self.dataset.shuffle_data())
 
     def state_dict(self):

@@ -158,7 +158,7 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        for epoch in range(2):
+        for epoch in range(5):
             train_epoch(
                 model,
                 optimizer,
@@ -171,8 +171,8 @@ def run(opts):
                 opts
             )
         
-            cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
-            print('pi in run.py file:', pi)
+    cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+    torch.save(pi, 'pi_valdataset.pt')
 
 
 if __name__ == "__main__":

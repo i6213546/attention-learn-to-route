@@ -14,3 +14,6 @@ model_examine/
 test.*
 examinate/
 *copy.*
+pi_valdataset.pt
+
+simple_tsp copy.ipynb

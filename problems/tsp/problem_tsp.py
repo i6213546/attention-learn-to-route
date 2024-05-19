@@ -101,5 +101,5 @@ class TSPDataset(Dataset):
         temp = list(zip(self.data, self.cost_data))
         random.shuffle(temp)
         res1, res2 = zip(*temp)
-        # res1 and res2 come out as tuples, and so must be converted to lists.
         self.data, self.cost_data = list(res1), list(res2)
+        return self
