@@ -16,6 +16,8 @@ from nets.attention_model import AttentionModel
 from nets.pointer_network import PointerNetwork, CriticNetworkLSTM
 from utils import torch_load_cpu, load_problem
 
+from utils.plot import plot_training_result
+
 
 def run(opts):
 
@@ -75,7 +77,6 @@ def run(opts):
     model_ = get_inner_model(model)
     model_.load_state_dict({**model_.state_dict(), **load_data.get('model', {})})
 
-    # Start the actual training loop
     eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.eval_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
 
     # Initialize baseline
@@ -157,32 +158,40 @@ def run(opts):
     if opts.eval_only:
         validate(model, val_dataset, opts)
     else:
-        #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        for epoch in range(5):
-            train_epoch(
-                model,
-                optimizer,
-                baseline,
-                lr_scheduler,
-                epoch,
-                val_dataset,
-                problem,
-                tb_logger,
-                opts
-            )
+        training_cost   = []
+        baseline_cost   = []
+        validation_cost = []
+        for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
+        #for epoch in range(10):
+            train_cost, bl_cost, val_cost = train_epoch(
+                                    model,
+                                    optimizer,
+                                    baseline,
+                                    lr_scheduler,
+                                    epoch,
+                                    val_dataset,
+                                    problem,
+                                    tb_logger,
+                                    opts
+                                    )
+            training_cost.append(train_cost)
+            baseline_cost.append(bl_cost)
+            validation_cost.append(val_cost)
+
+        with open(os.path.join(opts.save_dir, 'training_cost.pkl'), 'wb') as f:
+            pickle.dump(training_cost, f, pickle.HIGHEST_PROTOCOL)
         
-    cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
-    torch.save(pi, 'pi_valdataset.pt')
+        with open(os.path.join(opts.save_dir, 'baseline_cost.pkl'), 'wb') as f:
+            pickle.dump(baseline_cost, f, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(opts.save_dir, 'validation_cost.pkl'), 'wb') as f:
+            pickle.dump(validation_cost, f, pickle.HIGHEST_PROTOCOL)
+        
+        plot_training_result(train_cost =training_cost,
+                             bl_cost    =baseline_cost,
+                             val_cost   =validation_cost,
+                             save_path  =os.path.join(opts.save_dir, 'result.png'))
 
 
 if __name__ == "__main__":
     run(get_options())
-    # opts = get_options()
-    # problem = load_problem(opts.problem)
-    # eval_dataset = problem.make_dataset(size=opts.graph_size, 
-    #                                     num_samples=opts.eval_size, 
-    #                                     filename=opts.eval_dataset, 
-    #                                     distribution=opts.data_distribution)
-    # eval_dataset.shuffle_data()
-    # print(eval_dataset.data[0][:5])
-    # print(eval_dataset.cost_data[0][:5])

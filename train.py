@@ -55,7 +55,6 @@ def rollout(model, dataset, opts, return_pi=False):
                                             opts.eval_batch_size*(bat_id+1)]
                 if isinstance(cost_metric, list):
                     cost_metric = torch.stack(cost_metric)
-                #print('cost metric:', cost_metric)
                 if return_pi:
                     cost, _, pi = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device), 
                                           return_pi=return_pi)
@@ -127,13 +126,9 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     print('base line:', baseline)
     training_dataset = baseline.wrap_dataset(training)
-    #training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
-    batch_size = 5
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
     cost_dataloader     = DataLoader(training_dataset.cost_data, batch_size=opts.batch_size, num_workers=1)
 
-    #batch_sampler = training_dataloader.batch_sampler   
-    #print('baseline dataset cost:', training_dataset.cost_data)
     cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
     # Create an empty list to store sets of indices for each batch
     #indices_per_batch = []
@@ -144,29 +139,30 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     # Put model in train mode!
     model.train()
     set_decode_type(model, "greedy")
+    training_cost = []
 
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
-
         cost_data = cost_dataloader[batch_id]
-        train_batch(
-            model,
-            optimizer,
-            baseline,
-            epoch,
-            batch_id,
-            step,
-            batch,
-            tb_logger,
-            opts,
-            cost_data=cost_data
-        )
-
+        cost_bat = train_batch(
+                    model,
+                    optimizer,
+                    baseline,
+                    epoch,
+                    batch_id,
+                    step,
+                    batch,
+                    tb_logger,
+                    opts,
+                    cost_data=cost_data
+                    )
+        training_cost.append(cost_bat)
         step += 1
 
     epoch_duration = time.time() - start_time
     print("Finished epoch {}, took {} s".format(epoch, time.strftime('%H:%M:%S', time.gmtime(epoch_duration))))
-
-    if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
+    print("Cost in this epoch:", np.sum(training_cost))
+    #if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
+    if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1):
         print('Saving model and state...')
         torch.save(
             {
@@ -184,11 +180,12 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     if not opts.no_tensorboard:
         tb_logger.log_value('val_avg_reward', avg_reward, step)
 
-    baseline.epoch_callback(model, epoch)
-
+    candidate_mean = baseline.epoch_callback(model, epoch)
+    print('candidate mean:', candidate_mean)
     # lr_scheduler should be called at end of epoch
     lr_scheduler.step()
 
+    return np.sum(training_cost)/training.size, candidate_mean, avg_reward
 
 def train_batch(
         model,
@@ -227,3 +224,5 @@ def train_batch(
     if step % int(opts.log_step) == 0:
         log_values(cost, grad_norms, epoch, batch_id, step,
                    log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
+    
+    return cost.sum().item()

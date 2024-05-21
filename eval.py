@@ -72,7 +72,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
     parallelism = opts.eval_batch_size
 
-    costs, tours, durations = zip(*results)  # Not really costs since they should be negative
+    costs, tours, durations = zip(*results)  # Not really costs since they should be negative 
 
     print("Average cost: {} +- {}".format(np.mean(costs), 2 * np.std(costs) / np.sqrt(len(costs))))
     print("Average serial duration: {} +- {}".format(
@@ -104,7 +104,6 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
 
 def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
-    print('eval dataset:', dataset.cost_data)
     model.to(device)
     model.eval()
 
@@ -119,7 +118,7 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
     results = []
     for id, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         batch = move_to(batch, device)
-        cost_data = move_to(cost_dataloader[id])
+        cost_data = move_to(cost_dataloader[id], device)
         start = time.time()
         with torch.no_grad():
             if opts.decode_strategy in ('sample', 'greedy'):
