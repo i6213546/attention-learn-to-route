@@ -160,9 +160,9 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     epoch_duration = time.time() - start_time
     print("Finished epoch {}, took {} s".format(epoch, time.strftime('%H:%M:%S', time.gmtime(epoch_duration))))
-    print("Cost in this epoch:", np.sum(training_cost))
+    #print("Cost in this epoch:", np.sum(training_cost))
     #if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
-    if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1):
+    if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1) or epoch==0:
         print('Saving model and state...')
         torch.save(
             {

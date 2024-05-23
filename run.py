@@ -161,8 +161,8 @@ def run(opts):
         training_cost   = []
         baseline_cost   = []
         validation_cost = []
-        for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        #for epoch in range(10):
+        #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
+        for epoch in range(20):
             train_cost, bl_cost, val_cost = train_epoch(
                                     model,
                                     optimizer,

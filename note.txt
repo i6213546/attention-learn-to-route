@@ -46,6 +46,11 @@ For open TSP: the cost returned to the depot should be set to 0 (set cost[:,0] =
 
 Run the model: (make sure that the corresponding cost matrix is named by, eg: data/tsp/train_cost.pkl)
     input: 20. Change graph_size for running different TSP size
+
     python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout --train_dataset data/tsp/train_location.pkl 
+                   --val_dataset data/tsp/val_location.pkl
+                   --eval_dataset data/tsp/eval_location.pkl
+
+    python3 run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout --train_dataset data/tsp/train_location.pkl 
                    --val_dataset data/tsp/val_location.pkl
                    --eval_dataset data/tsp/eval_location.pkl
