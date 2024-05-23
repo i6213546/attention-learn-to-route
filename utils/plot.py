@@ -21,3 +21,6 @@ def plot_training_result(train_cost, bl_cost, val_cost, save_path=None):
         
     # Display the plot
     plt.show()
+
+def plot_tour():
+    return
