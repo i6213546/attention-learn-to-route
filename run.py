@@ -17,7 +17,7 @@ from nets.pointer_network import PointerNetwork, CriticNetworkLSTM
 from utils import torch_load_cpu, load_problem
 
 from utils.plot import plot_training_result
-
+from utils.sequence_deviation import sequence_deviation
 
 def run(opts):
 
@@ -162,7 +162,7 @@ def run(opts):
         baseline_cost   = []
         validation_cost = []
         #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        for epoch in range(20):
+        for epoch in range(5):
             train_cost, bl_cost, val_cost = train_epoch(
                                     model,
                                     optimizer,
@@ -192,6 +192,12 @@ def run(opts):
                              val_cost   =validation_cost,
                              save_path  =os.path.join(opts.save_dir, 'result.png'))
 
+        avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+        with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
+            pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+        print('avg_cost:', avg_cost)
+        SD = sequence_deviation(pi)
+        print('sequence_deviation:', SD)
 
 if __name__ == "__main__":
     run(get_options())

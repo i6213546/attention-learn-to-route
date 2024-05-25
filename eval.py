@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 import time
 from datetime import timedelta
 from utils.functions import parse_softmax_temperature
+from utils.sequence_deviation import sequence_deviation
 mp = torch.multiprocessing.get_context('spawn')
 
 
@@ -112,13 +113,20 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
         temp=softmax_temp)
 
     dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
-    cost_dataloader = DataLoader(dataset.cost_data, batch_size=opts.eval_batch_size)
-    cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
+    cost_input = False
+    cost_dataloader = None
+    if dataset.cost_data:
+        cost_input = True
+        cost_dataloader = DataLoader(dataset.cost_data, batch_size=opts.eval_batch_size)
+        cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
 
     results = []
     for id, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         batch = move_to(batch, device)
-        cost_data = move_to(cost_dataloader[id], device)
+        if cost_input:
+            cost_data = move_to(cost_dataloader[id], device)
+        else:
+            cost_data = None
         start = time.time()
         with torch.no_grad():
             if opts.decode_strategy in ('sample', 'greedy'):
@@ -214,4 +222,7 @@ if __name__ == "__main__":
 
     for width in widths:
         for dataset_path in opts.datasets:
-            eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
+            costs, tours, duration = eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
+            print('sequence deviation:', np.mean(sequence_deviation(tours)))
+
+#python eval.py data/tsp/train_location.pkl --model outputs/tsp_100/tsp100_rollout_20240524T022531 --decode_strategy greedy

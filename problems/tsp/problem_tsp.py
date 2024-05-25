@@ -75,7 +75,7 @@ class TSPDataset(Dataset):
                 self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
             
             # init cost dataset for tour length computation
-            filename_cost = filename.split('_')[0] + '_cost.pkl'
+            filename_cost = filename.split('_')[0] + '_cost.pkll'
             if os.path.exists(filename_cost):
                 with open(filename_cost, 'rb') as f:
                     data = pickle.load(f)
@@ -98,8 +98,12 @@ class TSPDataset(Dataset):
         return self.data[idx]
 
     def shuffle_data(self):
-        temp = list(zip(self.data, self.cost_data))
-        random.shuffle(temp)
-        res1, res2 = zip(*temp)
-        self.data, self.cost_data = list(res1), list(res2)
-        return self
+        if self.cost_data:
+            temp = list(zip(self.data, self.cost_data))
+            random.shuffle(temp)
+            res1, res2 = zip(*temp)
+            self.data, self.cost_data = list(res1), list(res2)
+            return self
+        else:
+            random.shuffle(self.data)
+            return self
