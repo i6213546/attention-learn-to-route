@@ -214,7 +214,7 @@ if __name__ == "__main__":
 # --val_dataset data/tsp/val_location.pkl 
 # --eval_dataset data/tsp/eval_location.pkl 
 # --n_epochs 100
-# --resume outputs/tsp_100/tsp100_rollout_20240525T170127/epoch-4.pt 
+# --resume outputs/tsp_100/tsp100_rollout_20240525_cost_100epochs/epoch-99.pt 
 # --eval_only
 # --cost_input yes
 

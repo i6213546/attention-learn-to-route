@@ -128,9 +128,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     training_dataset = baseline.wrap_dataset(training)
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
 
-    cost_flag = False
-    if training_dataset.cost_data != None:
-        cost_flag = True
+    if opts.cost_input:
         cost_dataloader = DataLoader(training_dataset.cost_data, batch_size=opts.batch_size, num_workers=1)
 
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
@@ -146,7 +144,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     training_cost = []
 
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
-        if cost_flag:
+        if opts.cost_input:
             cost_data = cost_dataloader[batch_id]
         else: cost_data = None
         cost_bat = train_batch(
