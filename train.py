@@ -119,8 +119,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         tb_logger.log_value('learnrate_pg0', optimizer.param_groups[0]['lr'], step)
 
     # Generate new training data for each epoch
-    training = problem.make_dataset(filename=opts.train_dataset,
-        size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution)
+    training = problem.make_dataset(filename=opts.train_dataset,size=opts.graph_size, 
+                                    num_samples=opts.epoch_size, cost_input=opts.cost_input, distribution=opts.data_distribution)
     # shuffling data after every re-train
     training.shuffle_data()
 

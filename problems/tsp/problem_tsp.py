@@ -64,7 +64,7 @@ class TSP(object):
 
 class TSPDataset(Dataset):
     
-    def __init__(self, filename=None, size=50, num_samples=1000000, offset=0, distribution=None):
+    def __init__(self, filename=None, size=50, num_samples=1000000, offset=0, cost_input=None, distribution=None):
         super(TSPDataset, self).__init__()
 
         self.data_set = []
@@ -74,14 +74,17 @@ class TSPDataset(Dataset):
                 data = pickle.load(f)
                 self.data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
             
-            # init cost dataset for tour length computation
-            filename_cost = filename.split('_')[0] + '_cost.pkll'
-            if os.path.exists(filename_cost):
-                with open(filename_cost, 'rb') as f:
-                    data = pickle.load(f)
-                    self.cost_data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+            if cost_input != None:
+                # init cost dataset for tour length computation
+                filename_cost = filename.split('_')[0] + '_cost.pkl'
+                if os.path.exists(filename_cost):
+                    with open(filename_cost, 'rb') as f:
+                        data = pickle.load(f)
+                        self.cost_data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+                else:
+                    self.cost_data = None
             else:
-                self.cost_data = None
+                    self.cost_data = None
         else:
             # Sample points randomly in [0, 1] square
             self.data = [torch.FloatTensor(size, 2).uniform_(0, 1) for i in range(num_samples)]

@@ -229,11 +229,11 @@ class RolloutBaseline(Baseline):
             'epoch': self.epoch
         }
 
-    def load_state_dict(self, state_dict, dataset=None):
+    def load_state_dict(self, state_dict):
         # We make it such that it works whether model was saved as data parallel or not
         load_model = copy.deepcopy(self.model)
         get_inner_model(load_model).load_state_dict(get_inner_model(state_dict['model']).state_dict())
-        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'], dataset=dataset)
+        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'])
 
 
 class BaselineDataset(Dataset):

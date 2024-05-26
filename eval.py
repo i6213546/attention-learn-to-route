@@ -44,7 +44,8 @@ def eval_dataset_mp(args):
 
     model, _ = load_model(opts.model)
     val_size = opts.val_size // num_processes
-    dataset = model.problem.make_dataset(filename=dataset_path, num_samples=val_size, offset=opts.offset + val_size * i)
+    dataset = model.problem.make_dataset(filename=dataset_path, num_samples=val_size, 
+                                         cost_input=opts.cost_input, offset=opts.offset + val_size * i)
     device = torch.device("cuda:{}".format(i))
 
     return _eval_dataset(model, dataset, width, softmax_temp, opts, device)
@@ -67,7 +68,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
 
     else:
         device = torch.device("cuda:0" if use_cuda else "cpu")
-        dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, offset=opts.offset)
+        dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, cost_input=opts.cost_input, offset=opts.offset)
         results = _eval_dataset(model, dataset, width, softmax_temp, opts, device)
 
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
@@ -193,6 +194,8 @@ if __name__ == "__main__":
                         help='Number of instances used for reporting validation performance')
     parser.add_argument('--offset', type=int, default=0,
                         help='Offset where to start in dataset (default 0)')
+    parser.add_argument('--cost_input', type=str, default=None, 
+                        help='Cost input data to use instead of computing Euclidean distance')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
                         help="Batch size to use during (baseline) evaluation")
     # parser.add_argument('--decode_type', type=str, default='greedy',
@@ -224,5 +227,6 @@ if __name__ == "__main__":
         for dataset_path in opts.datasets:
             costs, tours, duration = eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
             print('sequence deviation:', np.mean(sequence_deviation(tours)))
+            print(tours)
 
-#python eval.py data/tsp/train_location.pkl --model outputs/tsp_100/tsp100_rollout_20240524T022531 --decode_strategy greedy
+#python eval.py data/tsp/val_location.pkl --model outputs/tsp_100/tsp100_rollout_20240525_nocost --decode_strategy greedy -f
