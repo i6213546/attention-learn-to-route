@@ -31,7 +31,7 @@ class Baseline(object):
 
 class WarmupBaseline(Baseline):
 
-    def __init__(self, baseline, n_epochs=1, warmup_exp_beta=0.8, ):
+    def __init__(self, baseline, n_epochs=1, warmup_exp_beta=0.8,):
         super(Baseline, self).__init__()
 
         self.baseline = baseline
@@ -220,6 +220,7 @@ class RolloutBaseline(Baseline):
                 ### here new dataset is used, should be replace by: (shuffling?)
                 print(self.dataset)
                 self._update_model(model, epoch, dataset=self.dataset.shuffle_data())
+                #self._update_model(model, epoch)
         return candidate_mean
     
     def state_dict(self):

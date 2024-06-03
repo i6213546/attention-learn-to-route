@@ -222,6 +222,14 @@ class AttentionModel(nn.Module):
         # TSP
         return self.init_embed(input)
 
+    def _inner_update_with_given_pi(self, input, sequences):
+        state = self.problem.make_state(input)
+
+        # update state based on the given sequence:
+        for i in range(len(sequences[0])):
+            state = state.update(sequences[:, i])
+        
+        return state
     def _inner(self, input, embeddings):
 
         outputs = []
@@ -254,7 +262,8 @@ class AttentionModel(nn.Module):
 
             # Select the indices of the next nodes in the sequences, result (batch_size) long
             selected = self._select_node(log_p.exp()[:, 0, :], mask[:, 0, :])  # Squeeze out steps dimension
-            
+            #print('select length in _inner func:', len(selected))
+            #print('first selected:', selected)
             state = state.update(selected)
 
             # Now make log_p, selected desired output size by 'unshrinking'

@@ -73,7 +73,7 @@ def rollout(model, dataset, opts, return_pi=False):
         
     if return_pi:
         ret_cost = torch.tensor([])
-        ret_pi   = torch.tensor([])
+        ret_pi   = torch.tensor([], dtype=torch.int64)
         for bat_id, bat in enumerate(tqdm(DataLoader(dataset, 
                                                      batch_size=opts.eval_batch_size), 
                                                      disable=opts.no_progress_bar)):
@@ -124,7 +124,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     # shuffling data after every re-train
     training.shuffle_data()
 
-    print('base line:', baseline)
+    print('baseline:', baseline)
+    print('baseline alpha:', baseline.alpha)
     training_dataset = baseline.wrap_dataset(training)
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
 
@@ -186,7 +187,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     candidate_mean = baseline.epoch_callback(model, epoch)
     print('candidate mean:', candidate_mean)
-    # lr_scheduler should be called at end of epoch
+    # lr_scheduler should be called  end of epoch
     lr_scheduler.step()
 
     return np.sum(training_cost)/training.size, candidate_mean, avg_reward
