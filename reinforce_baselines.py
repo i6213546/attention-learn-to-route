@@ -31,7 +31,7 @@ class Baseline(object):
 
 class WarmupBaseline(Baseline):
 
-    def __init__(self, baseline, n_epochs=1, warmup_exp_beta=0.8, ):
+    def __init__(self, baseline, n_epochs=1, warmup_exp_beta=0.8,):
         super(Baseline, self).__init__()
 
         self.baseline = baseline
@@ -172,7 +172,7 @@ class RolloutBaseline(Baseline):
             self.dataset = dataset
             print('baselinedataset fromdataset:', self.dataset)
         
-        print("Evaluating baseline model on evaluation dataset, initialize")
+        print("Evaluating baseline model on evaluation dataset, _update model")
         self.bl_vals = rollout(self.model, self.dataset, self.opts).cpu().numpy()
         self.mean = self.bl_vals.mean()
         self.epoch = epoch
@@ -220,6 +220,7 @@ class RolloutBaseline(Baseline):
                 ### here new dataset is used, should be replace by: (shuffling?)
                 print(self.dataset)
                 self._update_model(model, epoch, dataset=self.dataset.shuffle_data())
+                #self._update_model(model, epoch)
         return candidate_mean
     
     def state_dict(self):
@@ -229,11 +230,11 @@ class RolloutBaseline(Baseline):
             'epoch': self.epoch
         }
 
-    def load_state_dict(self, state_dict, dataset=None):
+    def load_state_dict(self, state_dict):
         # We make it such that it works whether model was saved as data parallel or not
         load_model = copy.deepcopy(self.model)
         get_inner_model(load_model).load_state_dict(get_inner_model(state_dict['model']).state_dict())
-        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'], dataset=dataset)
+        self._update_model(load_model, state_dict['epoch'], state_dict['dataset'])
 
 
 class BaselineDataset(Dataset):

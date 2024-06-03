@@ -23,6 +23,8 @@ def get_options(args=None):
                         help='Number of instances used for reporting model evaluation performance')
     parser.add_argument('--eval_dataset', type=str, default=None, help='Dataset file to use for evaluation')
 
+    parser.add_argument('--cost_input', type=str, default=None, help='Cost input data to use instead of computing Euclidean distance')
+
     # Model
     parser.add_argument('--model', default='attention', help="Model, 'attention' (default) or 'pointer'")
     parser.add_argument('--embedding_dim', type=int, default=128, help='Dimension of input embedding')
@@ -81,11 +83,22 @@ def get_options(args=None):
 
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
     opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
-    opts.save_dir = os.path.join(
-        opts.output_dir,
-        "{}_{}".format(opts.problem, opts.graph_size),
-        opts.run_name
-    )
+    
+    opts.dir_existed = False
+    if opts.eval_only:
+        if opts.resume:
+            opts.save_dir = os.path.join(*opts.resume.split('/')[:-1])
+            opts.dir_existed = True
+        else:
+            opts.save_dir = os.path.join(opts.output_dir,
+                                        "{}_{}".format(opts.problem, opts.graph_size),
+                                        opts.run_name
+                                        )
+    else:
+        opts.save_dir = os.path.join(opts.output_dir,
+                                    "{}_{}".format(opts.problem, opts.graph_size),
+                                    opts.run_name
+                                    )
 
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:

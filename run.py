@@ -32,7 +32,8 @@ def run(opts):
     if not opts.no_tensorboard:
         tb_logger = TbLogger(os.path.join(opts.log_dir, "{}_{}".format(opts.problem, opts.graph_size), opts.run_name))
 
-    os.makedirs(opts.save_dir)
+    if not opts.dir_existed:
+        os.makedirs(opts.save_dir)
     # Save arguments so exact configuration can always be found
     with open(os.path.join(opts.save_dir, "args.json"), 'w') as f:
         json.dump(vars(opts), f, indent=True)
@@ -77,7 +78,8 @@ def run(opts):
     model_ = get_inner_model(model)
     model_.load_state_dict({**model_.state_dict(), **load_data.get('model', {})})
 
-    eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.eval_size, filename=opts.eval_dataset, distribution=opts.data_distribution)
+    eval_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.eval_size, filename=opts.eval_dataset, 
+                                        cost_input=opts.cost_input, distribution=opts.data_distribution)
 
     # Initialize baseline
     if opts.baseline == 'exponential':
@@ -141,7 +143,7 @@ def run(opts):
 
     # Start the actual training loop
     val_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.val_size, 
-                                       filename=opts.val_dataset, distribution=opts.data_distribution)
+                                       filename=opts.val_dataset, cost_input=opts.cost_input, distribution=opts.data_distribution)
  
     if opts.resume:
         epoch_resume = int(os.path.splitext(os.path.split(opts.resume)[-1])[0].split("-")[1])
@@ -156,13 +158,16 @@ def run(opts):
         opts.epoch_start = epoch_resume + 1
     
     if opts.eval_only:
-        validate(model, val_dataset, opts)
+        avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+        with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
+            pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+        print(sequence_deviation(pi))
     else:
         training_cost   = []
         baseline_cost   = []
         validation_cost = []
-        #for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-        for epoch in range(5):
+        for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
+        #for epoch in range(5):
             train_cost, bl_cost, val_cost = train_epoch(
                                     model,
                                     optimizer,
@@ -198,6 +203,25 @@ def run(opts):
         print('avg_cost:', avg_cost)
         SD = sequence_deviation(pi)
         print('sequence_deviation:', SD)
+        print('pi:', pi[:5])
 
 if __name__ == "__main__":
     run(get_options())
+
+## eval model only
+# python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
+# --train_dataset data/tsp/train_location.pkl 
+# --val_dataset data/tsp/val_location.pkl 
+# --eval_dataset data/tsp/eval_location.pkl 
+# --n_epochs 100
+# --resume outputs/tsp_100/tsp100_rollout_20240525_cost_100epochs/epoch-99.pt 
+# --eval_only
+# --cost_input yes
+
+## use cost input
+# python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
+# --train_dataset data/tsp/train_location.pkl 
+# --val_dataset data/tsp/val_location.pkl 
+# --eval_dataset data/tsp/eval_location.pkl 
+# --n_epochs 100
+# --cost_input true

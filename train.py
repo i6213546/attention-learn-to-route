@@ -73,7 +73,7 @@ def rollout(model, dataset, opts, return_pi=False):
         
     if return_pi:
         ret_cost = torch.tensor([])
-        ret_pi   = torch.tensor([])
+        ret_pi   = torch.tensor([], dtype=torch.int64)
         for bat_id, bat in enumerate(tqdm(DataLoader(dataset, 
                                                      batch_size=opts.eval_batch_size), 
                                                      disable=opts.no_progress_bar)):
@@ -119,18 +119,17 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         tb_logger.log_value('learnrate_pg0', optimizer.param_groups[0]['lr'], step)
 
     # Generate new training data for each epoch
-    training = problem.make_dataset(filename=opts.train_dataset,
-        size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution)
+    training = problem.make_dataset(filename=opts.train_dataset,size=opts.graph_size, 
+                                    num_samples=opts.epoch_size, cost_input=opts.cost_input, distribution=opts.data_distribution)
     # shuffling data after every re-train
     training.shuffle_data()
 
-    print('base line:', baseline)
+    print('baseline:', baseline)
+    print('baseline alpha:', baseline.alpha)
     training_dataset = baseline.wrap_dataset(training)
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
 
-    cost_flag = False
-    if training_dataset.cost_data != None:
-        cost_flag = True
+    if opts.cost_input:
         cost_dataloader = DataLoader(training_dataset.cost_data, batch_size=opts.batch_size, num_workers=1)
 
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
@@ -146,7 +145,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     training_cost = []
 
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
-        if cost_flag:
+        if opts.cost_input:
             cost_data = cost_dataloader[batch_id]
         else: cost_data = None
         cost_bat = train_batch(
@@ -188,7 +187,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     candidate_mean = baseline.epoch_callback(model, epoch)
     print('candidate mean:', candidate_mean)
-    # lr_scheduler should be called at end of epoch
+    # lr_scheduler should be called  end of epoch
     lr_scheduler.step()
 
     return np.sum(training_cost)/training.size, candidate_mean, avg_reward
