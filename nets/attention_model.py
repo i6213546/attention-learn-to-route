@@ -122,7 +122,7 @@ class AttentionModel(nn.Module):
         if temp is not None:  # Do not change temperature if not provided
             self.temp = temp
 
-    def forward(self, input, cost_data=None, return_pi=False):
+    def forward(self, input, cost_data=None, return_pi=False, SD=False):
         """
         :param input: (batch_size, graph_size, node_dim) input node features or dictionary with multiple tensors
         :param return_pi: whether to return the output sequences, this is optional as it is not compatible with
@@ -137,7 +137,7 @@ class AttentionModel(nn.Module):
 
         _log_p, pi = self._inner(input, embeddings)
 
-        cost, mask = self.problem.get_costs(input, pi, cost_data=cost_data)
+        cost, mask = self.problem.get_costs(input, pi, cost_data=cost_data, SD=SD)
         # Log likelyhood is calculated within the model since returning it per action does not work well with
         # DataParallel since sequences can be of different lengths
         ll = self._calc_log_likelihood(_log_p, pi, mask)
@@ -285,7 +285,7 @@ class AttentionModel(nn.Module):
         ret_sequences = torch.stack(sequences, 1)
         return ret_outpus, ret_sequences
 
-    def sample_many(self, input, cost_data=None, batch_rep=1, iter_rep=1):
+    def sample_many(self, input, cost_data=None, SD=False, batch_rep=1, iter_rep=1):
         """
         :param input: (batch_size, graph_size, node_dim) input node features
         :return:
@@ -294,9 +294,9 @@ class AttentionModel(nn.Module):
         # Making a tuple will not work with the problem.get_cost function
         return sample_many(
             lambda input: self._inner(*input),  # Need to unpack tuple into arguments
-            lambda input, pi: self.problem.get_costs(input[0], pi, cost_data=cost_data),  # Don't need embeddings as input to get_costs
+            lambda input, pi, cost_data, SD: self.problem.get_costs(input[0], pi, cost_data=cost_data, SD=SD),  # Don't need embeddings as input to get_costs
             (input, self.embedder(self._init_embed(input))[0]),  # Pack input with embeddings (additional input)
-            batch_rep, iter_rep
+            cost_data, SD, batch_rep, iter_rep
         )
 
     def _select_node(self, probs, mask):

@@ -50,7 +50,7 @@ def rollout(model, dataset, opts, return_pi=False):
 
     def eval_model_bat(bat, bat_id):
         with torch.no_grad():
-            if dataset.cost_data != None:
+            if opts.cost_input:
                 cost_metric = dataset.cost_data[opts.eval_batch_size*bat_id : 
                                             opts.eval_batch_size*(bat_id+1)]
                 if isinstance(cost_metric, list):
@@ -63,12 +63,12 @@ def rollout(model, dataset, opts, return_pi=False):
                     cost, _ = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device))
                     return cost.data.cpu()
             else:
-                print("not access to the cost data")
                 if return_pi:
-                    cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi)
+                    cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi, SD=opts.SD)
+                    print('cost in rollout:', cost[:10])
                     return cost.data.cpu(), pi.data.cpu()
                 else:
-                    cost, _ = model(move_to(bat, opts.device))
+                    cost, _ = model(move_to(bat, opts.device), SD=opts.SD)
                     return cost.data.cpu()
         
     if return_pi:
@@ -133,11 +133,6 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         cost_dataloader = DataLoader(training_dataset.cost_data, batch_size=opts.batch_size, num_workers=1)
 
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
-    # Create an empty list to store sets of indices for each batch
-    #indices_per_batch = []
-    # Iterate over batches
-    #for batch_indices in batch_sampler:
-    #    indices_per_batch.append(list(batch_indices))
     
     # Put model in train mode!
     model.train()
@@ -147,7 +142,9 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
         if opts.cost_input:
             cost_data = cost_dataloader[batch_id]
-        else: cost_data = None
+        else: 
+            cost_data = None
+
         cost_bat = train_batch(
                     model,
                     optimizer,
@@ -209,7 +206,7 @@ def train_batch(
     bl_val = move_to(bl_val, opts.device) if bl_val is not None else None
 
     # Evaluate model, get costs and log probabilities
-    cost, log_likelihood = model(x, cost_data=cost_data)
+    cost, log_likelihood = model(x, cost_data=cost_data, SD=opts.SD)
 
     # Evaluate baseline, get baseline loss if any (only for critic)
     bl_val, bl_loss = baseline.eval(x, cost) if bl_val is None else (bl_val, 0)

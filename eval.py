@@ -114,17 +114,14 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
         temp=softmax_temp)
 
     dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
-    cost_input = False
-    cost_dataloader = None
-    if dataset.cost_data:
-        cost_input = True
+    if opts.cost_input:
         cost_dataloader = DataLoader(dataset.cost_data, batch_size=opts.eval_batch_size)
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
 
     results = []
     for id, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         batch = move_to(batch, device)
-        if cost_input:
+        if opts.cost_input:
             cost_data = move_to(cost_dataloader[id], device)
         else:
             cost_data = None
@@ -147,7 +144,7 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                     iter_rep = 1
                 assert batch_rep > 0
                 # This returns (batch_size, iter_rep shape)
-                sequences, costs = model.sample_many(batch, cost_data=cost_data, batch_rep=batch_rep, iter_rep=iter_rep)
+                sequences, costs = model.sample_many(batch, cost_data=cost_data, SD=opts.SD, batch_rep=batch_rep, iter_rep=iter_rep)
                 batch_size = len(costs)
                 ids = torch.arange(batch_size, dtype=torch.int64, device=costs.device)
             else:
@@ -196,6 +193,8 @@ if __name__ == "__main__":
                         help='Offset where to start in dataset (default 0)')
     parser.add_argument('--cost_input', type=str, default=None, 
                         help='Cost input data to use instead of computing Euclidean distance')
+    parser.add_argument('--SD', type=bool, default=False, 
+                        help='Computing sequence deviation as cost instead of Euclidean distance')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
                         help="Batch size to use during (baseline) evaluation")
     # parser.add_argument('--decode_type', type=str, default='greedy',

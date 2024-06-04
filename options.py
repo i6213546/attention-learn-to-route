@@ -25,6 +25,8 @@ def get_options(args=None):
 
     parser.add_argument('--cost_input', type=str, default=None, help='Cost input data to use instead of computing Euclidean distance')
 
+    parser.add_argument('--use_SD', type=str, default=None, help='Use standard deviation as cost function instead of Euclidean distance')
+
     # Model
     parser.add_argument('--model', default='attention', help="Model, 'attention' (default) or 'pointer'")
     parser.add_argument('--embedding_dim', type=int, default=128, help='Dimension of input embedding')
@@ -100,6 +102,7 @@ def get_options(args=None):
                                     opts.run_name
                                     )
 
+    #opts.save_dir='outputs/tsp_100/test'
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
             temp = pickle.load(file)
@@ -112,6 +115,11 @@ def get_options(args=None):
     
     assert(opts.eval_size == opts.val_size)
 
+    if opts.use_SD != None:
+        opts.SD = True
+    else:
+        opts.SD = False
+        
     if opts.bl_warmup_epochs is None:
         opts.bl_warmup_epochs = 1 if opts.baseline == 'rollout' else 0
     assert (opts.bl_warmup_epochs == 0) or (opts.baseline == 'rollout')

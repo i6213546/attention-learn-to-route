@@ -32,8 +32,7 @@ def run(opts):
     if not opts.no_tensorboard:
         tb_logger = TbLogger(os.path.join(opts.log_dir, "{}_{}".format(opts.problem, opts.graph_size), opts.run_name))
 
-    if not opts.dir_existed:
-        os.makedirs(opts.save_dir)
+    os.makedirs(opts.save_dir, exist_ok=True)
     # Save arguments so exact configuration can always be found
     with open(os.path.join(opts.save_dir, "args.json"), 'w') as f:
         json.dump(vars(opts), f, indent=True)
@@ -214,9 +213,9 @@ if __name__ == "__main__":
 # --val_dataset data/tsp/val_location.pkl 
 # --eval_dataset data/tsp/eval_location.pkl 
 # --n_epochs 100
-# --resume outputs/tsp_100/tsp100_rollout_20240525_cost_100epochs/epoch-99.pt 
+# --load_path outputs/tsp_100/tsp100_rollout_20240525_cost_100epochs/epoch-99.pt 
 # --eval_only
-# --cost_input yes
+# --cost_input yes --SD True
 
 ## use cost input
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
@@ -225,3 +224,11 @@ if __name__ == "__main__":
 # --eval_dataset data/tsp/eval_location.pkl 
 # --n_epochs 100
 # --cost_input true
+
+## use SD
+# python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
+# --train_dataset data/tsp/train_location.pkl 
+# --val_dataset data/tsp/val_location.pkl 
+# --eval_dataset data/tsp/eval_location.pkl 
+# --n_epochs 100
+# --use_SD True

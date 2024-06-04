@@ -4,14 +4,14 @@ import os
 import pickle, random
 from problems.tsp.state_tsp import StateTSP
 from utils.beam_search import beam_search
-
+from utils.sequence_deviation import sequence_deviation
 
 class TSP(object):
 
     NAME = 'tsp'
 
     @staticmethod
-    def get_costs(dataset, pi, cost_data=None):
+    def get_costs(dataset, pi, cost_data=None, SD=False):
         # Check that tours are valid, i.e. contain 0 to n -1
         assert (
             torch.arange(pi.size(1), out=pi.data.new()).view(1, -1).expand_as(pi) ==
@@ -29,9 +29,15 @@ class TSP(object):
             cost = torch.stack([reorder_cost_data[:, i, j] for i, j in zip(s1, s2)]).sum(0)
             return cost, None
         
+        if SD:
+            cost = sequence_deviation(pi)
+            #print('cost in get_costs method:', cost)
+            return cost, None
+        
         # Gather dataset in order of tour
         d = dataset.gather(1, pi.unsqueeze(-1).expand_as(dataset))
         # Length is distance (L2-norm of difference) from each next location from its prev and of last from first
+        print('normal euclidean distance cost')
         return (d[:, 1:] - d[:, :-1]).norm(p=2, dim=2).sum(1) + (d[:, 0] - d[:, -1]).norm(p=2, dim=1), None
 
     @staticmethod
@@ -91,6 +97,7 @@ class TSPDataset(Dataset):
             self.cost_data = None
         self.size = len(self.data)
 
+        #=====for data preprocessing: the sequence of coordinates input should be the drivers sequence========#
         
         
     

@@ -152,7 +152,7 @@ class RolloutBaseline(Baseline):
         print('in init rollout baseline, dataset:', dataset)
         self._update_model(model, epoch, dataset=dataset)
 
-    def _update_model(self, model, epoch, dataset=None):
+    def _update_model(self, model, epoch, dataset=None, SD=False):
         self.model = copy.deepcopy(model)
         # Always generate baseline dataset when updating model to prevent overfitting to the baseline dataset
 
@@ -190,7 +190,7 @@ class RolloutBaseline(Baseline):
         print('Come to this method???')
         # Use volatile mode for efficient inference (single batch so we do not use rollout function)
         with torch.no_grad():
-            v, _ = self.model(x, cost)
+            v, _ = self.model(x, cost, self.opts.SD)
 
         # There is no loss
         return v, 0
