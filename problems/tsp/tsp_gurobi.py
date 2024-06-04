@@ -58,7 +58,7 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
         return cycle
 
     # Dictionary of Euclidean distance between each pair of points
-
+    # Here we can change into travelling cost
     dist = {(i,j) :
         math.sqrt(sum((points[i][k]-points[j][k])**2 for k in range(2)))
         for i in range(n) for j in range(i)}

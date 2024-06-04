@@ -99,7 +99,7 @@ def get_options(args=None):
     else:
         opts.save_dir = os.path.join(opts.output_dir,
                                     "{}_{}".format(opts.problem, opts.graph_size),
-                                    opts.run_name
+                                    "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
 
     #opts.save_dir='outputs/tsp_100/test'
