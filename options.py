@@ -106,7 +106,7 @@ def get_options(args=None):
                                     "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
 
-    #opts.save_dir='outputs/tsp_100/test'
+    #opts.save_dir='outputs/tsp_100/tsp100_rollout_2instance_0.0001_cost_100epochs'
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
             temp = pickle.load(file)

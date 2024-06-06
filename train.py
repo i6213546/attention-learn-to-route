@@ -107,8 +107,8 @@ def clip_grad_norms(param_groups, max_norm=math.inf):
         for group in param_groups
     ]
     mean_grad_norms = np.mean(grad_norms)
-    #grad_norms_clipped = [min(g_norm, max_norm) for g_norm in grad_norms] if max_norm > 0 else grad_norms
-    grad_norms_clipped = [min(g_norm, mean_grad_norms) for g_norm in grad_norms]
+    grad_norms_clipped = [min(g_norm, max_norm) for g_norm in grad_norms] if max_norm > 0 else grad_norms
+    #grad_norms_clipped = [min(g_norm, mean_grad_norms) for g_norm in grad_norms]
     return grad_norms, grad_norms_clipped
 
 

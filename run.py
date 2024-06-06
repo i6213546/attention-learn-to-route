@@ -232,11 +232,9 @@ if __name__ == "__main__":
 
 ## use cost input
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp/train_location.pkl 
-# --val_dataset data/tsp/val_location.pkl 
-# --eval_dataset data/tsp/eval_location.pkl 
-# --n_epochs 100
-# --cost_input true
+# --train_dataset data/tsp100/train_location.pkl  --val_dataset data/tsp100/val_location.pkl 
+# --eval_dataset data/tsp100/eval_location.pkl --test_dataset data/tsp100/test_location.pkl 
+# --n_epochs 20 --cost_input true --max_grad_norm 0
 
 ## use SD
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 

@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 import torch
-import os
+import os, numpy as np
 import pickle, random
 from problems.tsp.state_tsp import StateTSP
 from utils.beam_search import beam_search
@@ -29,16 +29,17 @@ class TSP(object):
             cost = torch.stack([reorder_cost_data[:, i, j] for i, j in zip(s1, s2)]).sum(0)
             return cost, None
         
-        if SD:
+        elif SD:
             cost = sequence_deviation(pi)
             #print('cost in get_costs method:', cost)
             return cost, None
         
-        # Gather dataset in order of tour
-        d = dataset.gather(1, pi.unsqueeze(-1).expand_as(dataset))
-        # Length is distance (L2-norm of difference) from each next location from its prev and of last from first
-        print('normal euclidean distance cost')
-        return (d[:, 1:] - d[:, :-1]).norm(p=2, dim=2).sum(1) + (d[:, 0] - d[:, -1]).norm(p=2, dim=1), None
+        else:
+            # Gather dataset in order of tour
+            d = dataset.gather(1, pi.unsqueeze(-1).expand_as(dataset))
+            # Length is distance (L2-norm of difference) from each next location from its prev and of last from first
+            print('normal euclidean distance cost')
+            return (d[:, 1:] - d[:, :-1]).norm(p=2, dim=2).sum(1) + (d[:, 0] - d[:, -1]).norm(p=2, dim=1), None
 
     @staticmethod
     def make_dataset(*args, **kwargs):
@@ -86,6 +87,8 @@ class TSPDataset(Dataset):
                 if os.path.exists(filename_cost):
                     with open(filename_cost, 'rb') as f:
                         data = pickle.load(f)
+                        for i in range(len(data)):
+                            data[i][:,0] = np.zeros(len(data[i]))
                         self.cost_data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
                 else:
                     self.cost_data = None

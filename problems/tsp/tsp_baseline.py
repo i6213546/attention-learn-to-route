@@ -308,11 +308,9 @@ def solve_all_nn(dataset_path, eval_batch_size=1024, no_cuda=False, dataset_n=No
     from torch.utils.data import DataLoader
     from problems import TSP
     from utils import move_to
-
-    dataloader = DataLoader(
-        TSP.make_dataset(filename=dataset_path, num_samples=dataset_n if dataset_n is not None else 1000000),
-        batch_size=eval_batch_size
-    )
+    dataset = TSP.make_dataset(filename=dataset_path, num_samples=dataset_n if dataset_n is not None else 1000000) 
+    dataloader = DataLoader(dataset, batch_size=eval_batch_size)
+    
     device = torch.device("cuda:0" if torch.cuda.is_available() and not no_cuda else "cpu")
     results = []
     for batch in tqdm(dataloader, mininterval=progress_bar_mininterval):
