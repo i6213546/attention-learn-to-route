@@ -86,11 +86,11 @@ def get_options(args=None):
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
     opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
     
-    opts.dir_existed = False
+    opts.checkpoint_epoch = None
     if opts.eval_only:
-        if opts.resume:
-            opts.save_dir = os.path.join(*opts.resume.split('/')[:-1])
-            opts.dir_existed = True
+        if opts.load_path:
+            opts.save_dir = os.path.join(*opts.load_path.split('/')[:-1])
+            opts.checkpoint_epoch = os.path.split(opts.load_path)[-1][:-3]
         else:
             opts.save_dir = os.path.join(opts.output_dir,
                                         "{}_{}".format(opts.problem, opts.graph_size),
@@ -102,7 +102,7 @@ def get_options(args=None):
                                     "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
 
-    #opts.save_dir='outputs/tsp_100/test'
+    opts.save_dir='outputs/tsp_100/test'
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
             temp = pickle.load(file)
@@ -113,7 +113,7 @@ def get_options(args=None):
             temp = pickle.load(file)
             opts.eval_size = len(temp)
     
-    assert(opts.eval_size == opts.val_size)
+    #assert(opts.eval_size == opts.val_size)
 
     if opts.use_SD != None:
         opts.SD = True

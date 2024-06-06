@@ -158,7 +158,7 @@ def run(opts):
     
     if opts.eval_only:
         avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
-        with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
+        with open(os.path.join(opts.save_dir, "val_pi{}.pkl".format(opts.checkpoint_epoch)), 'wb') as f:
             pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
         print(sequence_deviation(pi))
     else:
@@ -209,13 +209,13 @@ if __name__ == "__main__":
 
 ## eval model only
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp/train_location.pkl 
-# --val_dataset data/tsp/val_location.pkl 
-# --eval_dataset data/tsp/eval_location.pkl 
+# --train_dataset data/tsp100/train_location.pkl 
+# --val_dataset data/tsp100/val_location.pkl 
+# --eval_dataset data/tsp100/test_location.pkl 
 # --n_epochs 100
-# --load_path outputs/tsp_100/tsp100_rollout_20240525_cost_100epochs/epoch-99.pt 
+# --load_path outputs/tsp_100/tsp100_rollout_20240604T204603_0.001_0.97/epoch-9.pt 
 # --eval_only
-# --cost_input yes --SD True
+# --cost_input yes --use_SD True
 
 ## use cost input
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
@@ -227,8 +227,8 @@ if __name__ == "__main__":
 
 ## use SD
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp/train_location.pkl 
-# --val_dataset data/tsp/val_location.pkl 
-# --eval_dataset data/tsp/eval_location.pkl 
-# --n_epochs 100
+# --train_dataset data/tsp100/train_location.pkl 
+# --val_dataset data/tsp100/val_location.pkl 
+# --eval_dataset data/tsp100/eval_location.pkl 
+# --n_epochs 20
 # --use_SD True

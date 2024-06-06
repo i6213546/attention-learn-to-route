@@ -65,7 +65,7 @@ def rollout(model, dataset, opts, return_pi=False):
             else:
                 if return_pi:
                     cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi, SD=opts.SD)
-                    print('cost in rollout:', cost[:10])
+                    #print('cost in rollout:', cost[:10])
                     return cost.data.cpu(), pi.data.cpu()
                 else:
                     cost, _ = model(move_to(bat, opts.device), SD=opts.SD)
@@ -106,7 +106,9 @@ def clip_grad_norms(param_groups, max_norm=math.inf):
         )
         for group in param_groups
     ]
-    grad_norms_clipped = [min(g_norm, max_norm) for g_norm in grad_norms] if max_norm > 0 else grad_norms
+    mean_grad_norms = np.mean(grad_norms)
+    #grad_norms_clipped = [min(g_norm, max_norm) for g_norm in grad_norms] if max_norm > 0 else grad_norms
+    grad_norms_clipped = [min(g_norm, mean_grad_norms) for g_norm in grad_norms]
     return grad_norms, grad_norms_clipped
 
 
@@ -163,8 +165,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     epoch_duration = time.time() - start_time
     print("Finished epoch {}, took {} s".format(epoch, time.strftime('%H:%M:%S', time.gmtime(epoch_duration))))
     #print("Cost in this epoch:", np.sum(training_cost))
-    #if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
-    if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1) or epoch==0:
+    if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
+    #if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1) or epoch==0:
         print('Saving model and state...')
         torch.save(
             {
