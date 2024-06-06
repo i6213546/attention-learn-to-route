@@ -204,10 +204,14 @@ def run(opts):
             avg_cost, pi = validate(model, test_dataset, opts, return_pi=True, sorted_pi=True)
             with open(os.path.join(opts.save_dir, 'test_pi.pkl'), 'wb') as f:
                 pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
-        else:
-            avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
-            with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
-                pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+            print('avg_cost:', avg_cost)
+            SD = sequence_deviation(pi)
+            print('sequence_deviation:', SD)
+            print('pi:', pi[:5])
+        
+        avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+        with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
+            pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
         print('avg_cost:', avg_cost)
         SD = sequence_deviation(pi)
         print('sequence_deviation:', SD)
