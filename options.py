@@ -23,6 +23,10 @@ def get_options(args=None):
                         help='Number of instances used for reporting model evaluation performance')
     parser.add_argument('--eval_dataset', type=str, default=None, help='Dataset file to use for evaluation')
 
+    parser.add_argument('--test_size', type=int, default=10000,
+                        help='Number of instances used for reporting model evaluation performance')
+    parser.add_argument('--test_dataset', type=str, default=None, help='Dataset file to use for evaluation')
+
     parser.add_argument('--cost_input', type=str, default=None, help='Cost input data to use instead of computing Euclidean distance')
 
     parser.add_argument('--use_SD', type=str, default=None, help='Use standard deviation as cost function instead of Euclidean distance')
@@ -102,7 +106,7 @@ def get_options(args=None):
                                     "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
 
-    opts.save_dir='outputs/tsp_100/test'
+    #opts.save_dir='outputs/tsp_100/test'
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
             temp = pickle.load(file)
@@ -112,6 +116,11 @@ def get_options(args=None):
         with open(opts.eval_dataset, 'rb') as file:
             temp = pickle.load(file)
             opts.eval_size = len(temp)
+    
+    if opts.test_dataset:
+        with open(opts.test_dataset, 'rb') as file:
+            temp = pickle.load(file)
+            opts.test_size = len(temp)
     
     #assert(opts.eval_size == opts.val_size)
 

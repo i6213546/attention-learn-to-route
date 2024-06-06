@@ -143,6 +143,10 @@ def run(opts):
     # Start the actual training loop
     val_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.val_size, 
                                        filename=opts.val_dataset, cost_input=opts.cost_input, distribution=opts.data_distribution)
+    
+    # Start the actual training loop
+    test_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.test_size, 
+                                       filename=opts.test_dataset, cost_input=opts.cost_input, distribution=opts.data_distribution)
  
     if opts.resume:
         epoch_resume = int(os.path.splitext(os.path.split(opts.resume)[-1])[0].split("-")[1])
@@ -196,9 +200,14 @@ def run(opts):
                              val_cost   =validation_cost,
                              save_path  =os.path.join(opts.save_dir, 'result.png'))
 
-        avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
-        with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
-            pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+        if opts.test_dataset:
+            avg_cost, pi = validate(model, test_dataset, opts, return_pi=True, sorted_pi=True)
+            with open(os.path.join(opts.save_dir, 'test_pi.pkl'), 'wb') as f:
+                pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
+            with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
+                pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
         print('avg_cost:', avg_cost)
         SD = sequence_deviation(pi)
         print('sequence_deviation:', SD)
@@ -230,5 +239,5 @@ if __name__ == "__main__":
 # --train_dataset data/tsp100/train_location.pkl 
 # --val_dataset data/tsp100/val_location.pkl 
 # --eval_dataset data/tsp100/eval_location.pkl 
-# --n_epochs 20
-# --use_SD True
+# --test_dataset data/tsp100/test_location.pkl 
+# --n_epochs 20 --use_SD True --lr_model 0.001 --lr_decay 0.95 
