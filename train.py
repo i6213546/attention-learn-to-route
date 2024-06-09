@@ -128,7 +128,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     print('baseline:', baseline)
     print('baseline alpha:', baseline.alpha)
-    training_dataset = baseline.wrap_dataset(training)
+    training_dataset    = baseline.wrap_dataset(training)
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
 
     if opts.cost_input:
@@ -138,28 +138,29 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     
     # Put model in train mode!
     model.train()
-    set_decode_type(model, "greedy")
+    set_decode_type(model, "sampling")
     training_cost = []
-
+    training_bl_cost = []
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
         if opts.cost_input:
             cost_data = cost_dataloader[batch_id]
         else: 
             cost_data = None
 
-        cost_bat = train_batch(
-                    model,
-                    optimizer,
-                    baseline,
-                    epoch,
-                    batch_id,
-                    step,
-                    batch,
-                    tb_logger,
-                    opts,
-                    cost_data=cost_data
-                    )
+        cost_bat, bl_bat = train_batch(
+                            model,
+                            optimizer,
+                            baseline,
+                            epoch,
+                            batch_id,
+                            step,
+                            batch,
+                            tb_logger,
+                            opts,
+                            cost_data=cost_data
+                            )
         training_cost.append(cost_bat)
+        training_bl_cost.append(bl_bat)
         step += 1
 
     epoch_duration = time.time() - start_time
@@ -185,11 +186,10 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         tb_logger.log_value('val_avg_reward', avg_reward, step)
 
     candidate_mean = baseline.epoch_callback(model, epoch)
-    print('candidate mean:', candidate_mean)
     # lr_scheduler should be called  end of epoch
     lr_scheduler.step()
 
-    return np.sum(training_cost)/training.size, candidate_mean, avg_reward
+    return np.sum(training_cost)/training.size, np.sum(training_bl_cost)/training.size, candidate_mean, baseline.baseline.mean, avg_reward
 
 def train_batch(
         model,
@@ -202,7 +202,8 @@ def train_batch(
         tb_logger,
         opts,
         cost_data=None
-):
+):  
+    
     x, bl_val = baseline.unwrap_batch(batch)
     x = move_to(x, opts.device)
     bl_val = move_to(bl_val, opts.device) if bl_val is not None else None
@@ -217,6 +218,7 @@ def train_batch(
     reinforce_loss = ((cost - bl_val) * log_likelihood).mean()
     loss = reinforce_loss + bl_loss
 
+    #print(cost - bl_val)
     # Perform backward pass and optimization step
     optimizer.zero_grad()
     loss.backward()
@@ -228,5 +230,6 @@ def train_batch(
     if step % int(opts.log_step) == 0:
         log_values(cost, grad_norms, epoch, batch_id, step,
                    log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
+        print('epoch: {}, train_batch_id: {}, avg bl cost: {}'.format(epoch, batch_id, bl_val.mean().item()))
     
-    return cost.sum().item()
+    return cost.sum().item(), bl_val.sum().item()

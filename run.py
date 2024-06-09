@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
-import os
-import json
 import pprint as pp
-import pickle
-import torch
+import pickle, torch, random, os, json
 import torch.optim as optim
 from tensorboard_logger import Logger as TbLogger
 
@@ -19,6 +16,7 @@ from utils import torch_load_cpu, load_problem
 from utils.plot import plot_training_result
 from utils.sequence_deviation import sequence_deviation
 
+random.seed(None)
 def run(opts):
 
     # Pretty print the run args
@@ -146,7 +144,8 @@ def run(opts):
     
     # Start the actual training loop
     test_dataset = problem.make_dataset(size=opts.graph_size, num_samples=opts.test_size, 
-                                       filename=opts.test_dataset, cost_input=opts.cost_input, distribution=opts.data_distribution)
+                                       filename=opts.test_dataset, cost_input=opts.cost_input, 
+                                       distribution=opts.data_distribution)
  
     if opts.resume:
         epoch_resume = int(os.path.splitext(os.path.split(opts.resume)[-1])[0].split("-")[1])
@@ -161,17 +160,44 @@ def run(opts):
         opts.epoch_start = epoch_resume + 1
     
     if opts.eval_only:
+
+        if opts.test_dataset:
+            #test = test_dataset[460:470]
+            avg_cost, pi = validate(model, test_dataset, opts, return_pi=True, sorted_pi=True)
+            #with open(os.path.join(opts.save_dir, "test_pi{}.pkl".format(opts.checkpoint_epoch)), 'wb') as f:
+            #    pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+            print('avg_cost:', avg_cost)
+            SD = sequence_deviation(pi)
+            print('sequence_deviation:', SD)
+            #print('pi:', pi[0])
+
+            # print()
+            # test_sf = [random.sample(i, len(i)) for i in test]
+            # print(test_sf[3][:10])
+            # avg_cost, pi = validate(model, test_dataset, opts, return_pi=True, sorted_pi=True)
+            # #with open(os.path.join(opts.save_dir, "test_pi{}.pkl".format(opts.checkpoint_epoch)), 'wb') as f:
+            # #    pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
+            # print('avg_cost:', avg_cost)
+            # SD = sequence_deviation(pi)
+            # print('sequence_deviation:', SD)
+            # #print('pi:', pi[0])
+        
         avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
         with open(os.path.join(opts.save_dir, "val_pi{}.pkl".format(opts.checkpoint_epoch)), 'wb') as f:
             pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
-        print(sequence_deviation(pi))
+        print('avg_cost:', avg_cost)
+        SD = sequence_deviation(pi)
+        print('sequence_deviation:', SD)
+        print('pi:', pi[:5])
     else:
         training_cost   = []
+        training_bl_cost = []
         baseline_cost   = []
+        freeze_baseline_cost = []
         validation_cost = []
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
         #for epoch in range(5):
-            train_cost, bl_cost, val_cost = train_epoch(
+            train_cost, train_bl_cost, bl_cost, freeze_bl_cost, val_cost = train_epoch(
                                     model,
                                     optimizer,
                                     baseline,
@@ -182,53 +208,64 @@ def run(opts):
                                     tb_logger,
                                     opts
                                     )
+            
             training_cost.append(train_cost)
+            training_bl_cost.append(train_bl_cost)
             baseline_cost.append(bl_cost)
+            freeze_baseline_cost.append(freeze_bl_cost)
             validation_cost.append(val_cost)
 
         with open(os.path.join(opts.save_dir, 'training_cost.pkl'), 'wb') as f:
             pickle.dump(training_cost, f, pickle.HIGHEST_PROTOCOL)
+
+        with open(os.path.join(opts.save_dir, 'training_bl_cost.pkl'), 'wb') as f:
+            pickle.dump(training_bl_cost, f, pickle.HIGHEST_PROTOCOL)
         
         with open(os.path.join(opts.save_dir, 'baseline_cost.pkl'), 'wb') as f:
             pickle.dump(baseline_cost, f, pickle.HIGHEST_PROTOCOL)
 
+        with open(os.path.join(opts.save_dir, 'freeze_baseline_cost.pkl'), 'wb') as f:
+            pickle.dump(freeze_baseline_cost, f, pickle.HIGHEST_PROTOCOL)
+
         with open(os.path.join(opts.save_dir, 'validation_cost.pkl'), 'wb') as f:
             pickle.dump(validation_cost, f, pickle.HIGHEST_PROTOCOL)
         
-        plot_training_result(train_cost =training_cost,
-                             bl_cost    =baseline_cost,
-                             val_cost   =validation_cost,
-                             save_path  =os.path.join(opts.save_dir, 'result.png'))
-
         if opts.test_dataset:
             avg_cost, pi = validate(model, test_dataset, opts, return_pi=True, sorted_pi=True)
             with open(os.path.join(opts.save_dir, 'test_pi.pkl'), 'wb') as f:
                 pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
             print('avg_cost:', avg_cost)
             SD = sequence_deviation(pi)
-            print('sequence_deviation:', SD)
-            print('pi:', pi[:5])
+            print('sequence_deviation:', SD.mean())
         
         avg_cost, pi = validate(model, val_dataset, opts, return_pi=True, sorted_pi=True)
         with open(os.path.join(opts.save_dir, 'val_pi.pkl'), 'wb') as f:
             pickle.dump(pi, f, pickle.HIGHEST_PROTOCOL)
         print('avg_cost:', avg_cost)
         SD = sequence_deviation(pi)
-        print('sequence_deviation:', SD)
-        print('pi:', pi[:5])
+        print('sequence_deviation:', SD.mean())
+
+        plot_item = [training_cost, training_bl_cost, baseline_cost, freeze_baseline_cost, validation_cost]
+        legends   = ['training_cost_Sampled', 'training_cost_Greedy', 'eval_cost_Greedy', 'eval_cost_Greedy_Freezed', 'validation_cost']
+        plot_training_result(cost = plot_item,
+                             legend = legends, 
+                             title = 'training-eval-val cost over epochs',
+                             save_path  =os.path.join(opts.save_dir, 'result.png'))
+        # plot_training_result(train_cost =training_cost,
+        #                      bl_cost    =baseline_cost,
+        #                      val_cost   =validation_cost,
+        #                      save_path  =os.path.join(opts.save_dir, 'result.png'))
+
+    return    
 
 if __name__ == "__main__":
     run(get_options())
 
 ## eval model only
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp100/train_location.pkl 
-# --val_dataset data/tsp100/val_location.pkl 
-# --eval_dataset data/tsp100/test_location.pkl 
-# --n_epochs 100
-# --load_path outputs/tsp_100/tsp100_rollout_20240604T204603_0.001_0.97/epoch-9.pt 
-# --eval_only
-# --cost_input yes --use_SD True
+# --val_dataset data/tsp100_nocut/val_location.pkl --eval_dataset data/tsp100_nocut/eval_location.pkl  --test_dataset data/tsp100_nocut/test_location.pkl 
+# --load_path outputs/tsp_100/tsp100_rollout_20240607T040728_0.001_0.97_50epochs/epoch-49.pt
+# --eval_only --use_SD True
 
 ## use cost input
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
@@ -238,8 +275,6 @@ if __name__ == "__main__":
 
 ## use SD
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp100/train_location.pkl 
-# --val_dataset data/tsp100/val_location.pkl 
-# --eval_dataset data/tsp100/eval_location.pkl 
-# --test_dataset data/tsp100/test_location.pkl 
-# --n_epochs 20 --use_SD True --lr_model 0.001 --lr_decay 0.95 
+# --train_dataset data/tsp100_nocut/train_location.pkl --val_dataset data/tsp100_nocut/val_location.pkl 
+# --eval_dataset data/tsp100_nocut/eval_location.pkl --test_dataset data/tsp100_nocut/test_location.pkl 
+# --n_epochs 20 --use_SD True --lr_model 0.001 --lr_decay 0.95 --max_grad_norm 0

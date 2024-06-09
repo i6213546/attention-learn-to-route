@@ -178,7 +178,7 @@ class RolloutBaseline(Baseline):
         self.epoch = epoch
 
     def wrap_dataset(self, dataset):
-        print("Evaluating baseline on dataset...")
+        print("Evaluating baseline on training dataset...")
         # Need to convert baseline to 2D to prevent converting to double, see
         # https://discuss.pytorch.org/t/dataloader-gives-double-instead-of-float/717/3
         return BaselineDataset(dataset, rollout(self.model, dataset, self.opts).view(-1, 1))

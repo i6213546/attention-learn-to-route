@@ -62,7 +62,8 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
     dist = {(i,j) :
         math.sqrt(sum((points[i][k]-points[j][k])**2 for k in range(2)))
         for i in range(n) for j in range(i)}
-
+    for i in range(n):
+        dist[(i, 0)] = 0 # open TSP
     m = Model()
     m.Params.outputFlag = False
 
@@ -71,7 +72,8 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
     vars = m.addVars(dist.keys(), obj=dist, vtype=GRB.BINARY, name='e')
     for i,j in dist.keys():
         vars[j,i] = vars[i,j] # edge in opposite direction
-
+    
+    
     # You could use Python looping constructs and m.addVar() to create
     # these decision variables instead.  The following would be equivalent
     # to the preceding m.addVars() call...
@@ -105,7 +107,7 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
 
     vals = m.getAttr('x', vars)
     selected = tuplelist((i,j) for i,j in vals.keys() if vals[i,j] > 0.5)
-    print(selected)
+    #print(selected)
     tour = subtour(selected)
     assert len(tour) == n
 
@@ -120,7 +122,8 @@ def solve_travelling_time_tsp(points, cost, threads=0, timeout=None, gap=None):
     """
 
     n = len(points)
-
+    max_cost = np.max(cost)
+    norm_cost = cost/max_cost
     # Callback - use lazy constraints to eliminate sub-tours
 
     def subtourelim(model, where):
@@ -188,7 +191,7 @@ def solve_travelling_time_tsp(points, cost, threads=0, timeout=None, gap=None):
     print('tour', tour)
     assert len(tour) == n
 
-    return m.objVal, tour
+    return m.objVal*max_cost, tour
 
 def solve_all_gurobi(dataset, problem_type='euclidian', costset=None):
     results = []
@@ -210,19 +213,19 @@ def solve_all_gurobi(dataset, problem_type='euclidian', costset=None):
     return results, durations
 
 if __name__ == "__main__":
-    problem        = 'tsp100'
+    problem        = 'tsp100_nocut'
     data_file_name = 'data/{}/test_location.pkl'.format(problem)
     data_file_cost = 'data/{}/test_cost.pkl'.format(problem)
     save_dir       = 'results/{}/gurobi'.format(problem)
 
     dataset = load_dataset(data_file_name)
-    costset = load_dataset(data_file_cost)
-    
+    #costset = load_dataset(data_file_cost)
+    #print(dataset[1])
     #[print(i) for i in range(len(dataset)) if len(dataset[i]) > 100]
     #results, durations = solve_all_gurobi(dataset=dataset[1:2], problem_type='travelling_time', costset=costset[1:2])
-    results, durations = solve_all_gurobi(dataset=dataset[:1], problem_type='euclidian')
-    print(results)
-    print(durations)
+    results, durations = solve_all_gurobi(dataset=dataset[:10], problem_type='euclidian')
+    print(results[:,0])
+    #print(durations)
 
     ############ run script ##################
     # python -m problems.tsp.tsp_gurobi

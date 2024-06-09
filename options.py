@@ -12,7 +12,7 @@ def get_options(args=None):
     # Data
     parser.add_argument('--problem', default='tsp', help="The problem to solve, default 'tsp'")
     parser.add_argument('--graph_size', type=int, default=20, help="The size of the problem graph")
-    parser.add_argument('--batch_size', type=int, default=512, help='Number of instances per batch during training')
+    parser.add_argument('--batch_size', type=int, default=256, help='Number of instances per batch during training') #change from 521 to 256 as we have way less data
     parser.add_argument('--epoch_size', type=int, default=1280000, help='Number of instances per epoch during training')
     parser.add_argument('--train_dataset', type=str, default=None, help='Dataset file to use for training')
     parser.add_argument('--val_size', type=int, default=10000,
@@ -61,7 +61,7 @@ def get_options(args=None):
     parser.add_argument('--bl_warmup_epochs', type=int, default=None,
                         help='Number of epochs to warmup the baseline, default None means 1 for rollout (exponential '
                              'used for warmup phase), 0 otherwise. Can only be used with rollout baseline.')
-    parser.add_argument('--eval_batch_size', type=int, default=1024,
+    parser.add_argument('--eval_batch_size', type=int, default=512,
                         help="Batch size to use during (baseline) evaluation")
     parser.add_argument('--checkpoint_encoder', action='store_true',
                         help='Set to decrease memory usage by checkpointing encoder')
@@ -106,7 +106,7 @@ def get_options(args=None):
                                     "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
 
-    #opts.save_dir='outputs/tsp_100/tsp100_rollout_2instance_0.0001_cost_100epochs'
+    opts.save_dir='outputs/tsp_100/test'
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
             temp = pickle.load(file)
