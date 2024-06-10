@@ -111,6 +111,7 @@ class TSPDataset(Dataset):
         return self.data[idx]
 
     def shuffle_data(self):
+        random.seed(None)
         if self.cost_data:
             temp = list(zip(self.data, self.cost_data))
             random.shuffle(temp)

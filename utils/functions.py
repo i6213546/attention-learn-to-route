@@ -188,7 +188,7 @@ def sample_many(inner_func, get_cost_func, input, cost_data=None, SD=False, batc
     for i in range(iter_rep):
         _log_p, pi = inner_func(input)
         # pi.view(-1, batch_rep, pi.size(-1))
-        cost, mask = get_cost_func(input, pi, cost_data=cost_data,SD=SD)
+        cost, mask = get_cost_func(input, pi, cost_data=cost_data, SD=SD)
 
         costs.append(cost.view(batch_rep, -1).t())
         pis.append(pi.view(batch_rep, -1, pi.size(-1)).transpose(0, 1))

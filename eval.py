@@ -12,6 +12,7 @@ import time
 from datetime import timedelta
 from utils.functions import parse_softmax_temperature
 from utils.sequence_deviation import sequence_deviation
+from train import shift_row
 mp = torch.multiprocessing.get_context('spawn')
 
 
@@ -100,9 +101,9 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     assert opts.f or not os.path.isfile(
         out_file), "File already exists! Try running with -f option to overwrite."
 
-    save_dataset((results, parallelism), out_file)
+    #save_dataset((results, parallelism), out_file)
 
-    return costs, tours, durations
+    return list(costs), list(tours), list(durations)
 
 
 def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
@@ -184,10 +185,11 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    
     parser.add_argument("datasets", nargs='+', help="Filename of the dataset(s) to evaluate")
     parser.add_argument("-f", action='store_true', help="Set true to overwrite")
     parser.add_argument("-o", default=None, help="Name of the results file to write")
-    parser.add_argument('--val_size', type=int, default=10000,
+    parser.add_argument('--val_size', type=int, default=2500,
                         help='Number of instances used for reporting validation performance')
     parser.add_argument('--offset', type=int, default=0,
                         help='Offset where to start in dataset (default 0)')
@@ -225,7 +227,9 @@ if __name__ == "__main__":
     for width in widths:
         for dataset_path in opts.datasets:
             costs, tours, duration = eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
-            print('sequence deviation:', np.mean(sequence_deviation(tours)))
-            print(tours)
+            tours = torch.stack([shift_row(torch.tensor(i, dtype=torch.int64)) for i in tours])
 
-#python eval.py data/tsp/val_location.pkl --model outputs/tsp_100/tsp100_rollout_20240525_nocost --decode_strategy greedy -f
+            print(np.mean(costs))
+            print(sequence_deviation(tours).mean())
+
+#python eval.py data/tsp/val_location.pkl --model outputs/tsp_100/tsp100_rollout_20240609T205859_0.001_0.96_100epochs --decode_strategy sample -f

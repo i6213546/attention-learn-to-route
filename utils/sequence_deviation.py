@@ -11,6 +11,9 @@ def sequence_deviation(output_sequences):
     #     diffs = torch.abs(seq[1:] - seq[:-1]) - 1
     #     deviation = 2 * torch.sum(diffs) / (len(seq) * (len(seq) - 1))
     #     deviations.append(deviation.item())
+    if not isinstance(output_sequences, torch.Tensor):
+        output_sequences = [torch.tensor(i, dtype=torch.int64) for i in output_sequences]
+        output_sequences = torch.stack(output_sequences)
     length = output_sequences.size(1)
     SD = 2*torch.sum(torch.abs(output_sequences[:,1:] - output_sequences[:,:-1]) - 1, 1)/(length * (length-1))
     return SD

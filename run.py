@@ -215,6 +215,7 @@ def run(opts):
             freeze_baseline_cost.append(freeze_bl_cost)
             validation_cost.append(val_cost)
 
+            print('avg reward:', val_cost)
         with open(os.path.join(opts.save_dir, 'training_cost.pkl'), 'wb') as f:
             pickle.dump(training_cost, f, pickle.HIGHEST_PROTOCOL)
 
@@ -247,10 +248,10 @@ def run(opts):
 
         plot_item = [training_cost, training_bl_cost, baseline_cost, freeze_baseline_cost, validation_cost]
         legends   = ['training_cost_Sampled', 'training_cost_Greedy', 'eval_cost_Greedy', 'eval_cost_Greedy_Freezed', 'validation_cost']
-        plot_training_result(cost = plot_item,
+        plot_training_result(cost   = plot_item,
                              legend = legends, 
-                             title = 'training-eval-val cost over epochs',
-                             save_path  =os.path.join(opts.save_dir, 'result.png'))
+                             title  = 'training-eval-val cost over epochs',
+                             save_path=os.path.join(opts.save_dir, 'result.png'))
         # plot_training_result(train_cost =training_cost,
         #                      bl_cost    =baseline_cost,
         #                      val_cost   =validation_cost,
@@ -263,7 +264,7 @@ if __name__ == "__main__":
 
 ## eval model only
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --val_dataset data/tsp100_nocut/val_location.pkl --eval_dataset data/tsp100_nocut/eval_location.pkl  --test_dataset data/tsp100_nocut/test_location.pkl 
+# --val_dataset data/tsp100/val_location.pkl --eval_dataset data/tsp100/eval_location.pkl  --test_dataset data/tsp100_nocut/test_location.pkl 
 # --load_path outputs/tsp_100/tsp100_rollout_20240607T040728_0.001_0.97_50epochs/epoch-49.pt
 # --eval_only --use_SD True
 
@@ -275,6 +276,6 @@ if __name__ == "__main__":
 
 ## use SD
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
-# --train_dataset data/tsp100_nocut/train_location.pkl --val_dataset data/tsp100_nocut/val_location.pkl 
-# --eval_dataset data/tsp100_nocut/eval_location.pkl --test_dataset data/tsp100_nocut/test_location.pkl 
-# --n_epochs 20 --use_SD True --lr_model 0.001 --lr_decay 0.95 --max_grad_norm 0
+# --train_dataset data/tsp100/train_location.pkl --val_dataset data/tsp100/val_location.pkl 
+# --eval_dataset data/tsp100/eval_location.pkl --test_dataset data/tsp100/test_location.pkl 
+# --n_epochs 100 --use_SD True --lr_model 0.0001 --max_grad_norm 0
