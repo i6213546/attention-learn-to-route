@@ -1,7 +1,6 @@
-import torch
+import torch, random, math
 from torch import nn
 from torch.utils.checkpoint import checkpoint
-import math
 from typing import NamedTuple
 from utils.tensor_functions import compute_in_batches
 
@@ -304,6 +303,11 @@ class AttentionModel(nn.Module):
         assert (probs == probs).all(), "Probs should not contain any nans"
 
         if self.decode_type == "greedy":
+            # selected = torch.tensor([], dtype=torch.int64)
+            # for prob in probs:
+            #     maxval = (prob == torch.max(prob)).nonzero(as_tuple=True)[0].tolist()
+            #     _selected = random.sample(maxval, 1)
+            #     selected = torch.cat((selected, torch.tensor(_selected, dtype=torch.int64)))
             _, selected = probs.max(1)
             assert not mask.gather(1, selected.unsqueeze(
                 -1)).data.any(), "Decode greedy: infeasible action has maximum probability"

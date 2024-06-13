@@ -139,7 +139,7 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
     # Put model in train mode!
     model.train()
     set_decode_type(model, "sampling")
-    training_cost = []
+    training_cost    = []
     training_bl_cost = []
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
         if opts.cost_input:

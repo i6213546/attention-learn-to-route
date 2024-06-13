@@ -13,7 +13,7 @@ import argparse
 import numpy as np
 from utils.data_utils import load_dataset, save_dataset
 from gurobipy import *
-import math, itertools, time
+import math, itertools, time, pickle
 
 def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
     """
@@ -62,7 +62,7 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
     dist = {(i,j) :
         math.sqrt(sum((points[i][k]-points[j][k])**2 for k in range(2)))
         for i in range(n) for j in range(i)}
-    for i in range(n):
+    for i in range(1, n):
         dist[(i, 0)] = 0 # open TSP
     m = Model()
     m.Params.outputFlag = False
@@ -85,17 +85,9 @@ def solve_euclidian_tsp(points, threads=0, timeout=None, gap=None):
 
 
     # Add degree-2 constraint
-
     m.addConstrs(vars.sum(i,'*') == 2 for i in range(n))
 
-    # Using Python looping constructs, the preceding would be...
-    #
-    # for i in range(n):
-    #   m.addConstr(sum(vars[i,j] for j in range(n)) == 2)
-
-
     # Optimize model
-
     m._vars = vars
     m.Params.lazyConstraints = 1
     m.Params.threads = threads
@@ -162,7 +154,7 @@ def solve_travelling_time_tsp(points, cost, threads=0, timeout=None, gap=None):
     #     math.sqrt(sum((points[i][k]-points[j][k])**2 for k in range(2)))
     #     for i in range(n) for j in range(i)}
 
-    dist = {(i, j) : cost[i,j] for i in range(n) for j in range(n)}
+    dist = {(i, j) : norm_cost[i,j] for i in range(n) for j in range(n) if i != j}
     m = Model()
     m.Params.outputFlag = False
 
@@ -191,41 +183,47 @@ def solve_travelling_time_tsp(points, cost, threads=0, timeout=None, gap=None):
     print('tour', tour)
     assert len(tour) == n
 
-    return m.objVal*max_cost, tour
+    return m.objVal, tour
 
 def solve_all_gurobi(dataset, problem_type='euclidian', costset=None):
-    results = []
+    objVals = []
+    tours = []
     durations = []
     for i, instance in enumerate(dataset):
         print ("Solving instance {}".format(i))
         if problem_type == 'euclidian':
             start = time.time()
-            result = solve_euclidian_tsp(instance)
+            objVal, tour = solve_euclidian_tsp(instance)
             end   = time.time()
             durations.append(end-start)
+
         elif problem_type == 'travelling_time':
             cost = costset[i]
             start = time.time()
-            solve_travelling_time_tsp(instance, cost)
+            objVal, tour = solve_travelling_time_tsp(instance, cost)
             end   = time.time()
             durations.append(end-start)
-        results.append(result)
-    return results, durations
+
+        objVals.append(objVal)
+        tours.append(tour)
+    return objVals, tours, durations
 
 if __name__ == "__main__":
-    problem        = 'tsp100_nocut'
+    problem        = 'tsp100'
     data_file_name = 'data/{}/test_location.pkl'.format(problem)
     data_file_cost = 'data/{}/test_cost.pkl'.format(problem)
     save_dir       = 'results/{}/gurobi'.format(problem)
 
     dataset = load_dataset(data_file_name)
-    #costset = load_dataset(data_file_cost)
+    costset = load_dataset(data_file_cost)
     #print(dataset[1])
     #[print(i) for i in range(len(dataset)) if len(dataset[i]) > 100]
-    #results, durations = solve_all_gurobi(dataset=dataset[1:2], problem_type='travelling_time', costset=costset[1:2])
-    results, durations = solve_all_gurobi(dataset=dataset[:10], problem_type='euclidian')
-    print(results[:,0])
-    #print(durations)
-
+    #objVals, tours, durations = solve_all_gurobi(dataset=dataset[0:2], problem_type='travelling_time', costset=costset[0:2])
+    objVals, tours, durations = solve_all_gurobi(dataset=dataset, problem_type='euclidian')
+    
+    with open('outputs/tsp_100/gurobi/test_solution.pkl', 'wb') as f:
+        pickle.dump(tours, f, pickle.HIGHEST_PROTOCOL)
+    
+    print('mean time:', np.mean(durations))
     ############ run script ##################
     # python -m problems.tsp.tsp_gurobi

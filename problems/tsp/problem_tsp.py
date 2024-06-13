@@ -87,9 +87,7 @@ class TSPDataset(Dataset):
                 if os.path.exists(filename_cost):
                     with open(filename_cost, 'rb') as f:
                         data = pickle.load(f)
-                        for i in range(len(data)):
-                            data[i][:,0] = np.zeros(len(data[i]))
-                        self.cost_data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+                        self.cost_data = [torch.FloatTensor(row) for row in data]
                 else:
                     self.cost_data = None
             else:
