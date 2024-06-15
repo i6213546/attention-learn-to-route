@@ -136,7 +136,8 @@ def get_options(args=None):
             opts.save_dir = opts.save_dir + '_SD'
     else:
         opts.SD = False
-        
+    if opts.n_encode_layers != 3 and not opts.eval_only:
+        opts.save_dir = opts.save_dir + '_{}layers'.format(opts.n_encode_layers)
     if opts.bl_warmup_epochs is None:
         opts.bl_warmup_epochs = 1 if opts.baseline == 'rollout' else 0
     assert (opts.bl_warmup_epochs == 0) or (opts.baseline == 'rollout')

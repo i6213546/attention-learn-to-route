@@ -270,7 +270,7 @@ if __name__ == "__main__":
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
 # --val_dataset data/tsp100/val_location.pkl --eval_dataset data/tsp100/eval_location.pkl  --test_dataset data/tsp100/test_location.pkl 
 # --eval_only --use_SD True
-# --load_path outputs/tsp_100/tsp100_rollout_20240612T152312_0.001_0.96_100epochs_cost
+# --load_path outputs\tsp_100\tsp100_rollout_20240613T155803_0.0001_0.96_100epochs_cost/epoch-99.pt
 
 ## use cost input
 # python run.py --graph_size 100 --baseline rollout --run_name tsp100_rollout 
