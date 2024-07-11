@@ -1,17 +1,17 @@
 from torch.utils.data import Dataset
 import torch
-import os
+import os, numpy as np
 import pickle, random
 from problems.tsp.state_tsp import StateTSP
 from utils.beam_search import beam_search
-
+from utils.sequence_deviation import sequence_deviation
 
 class TSP(object):
 
     NAME = 'tsp'
 
     @staticmethod
-    def get_costs(dataset, pi, cost_data=None):
+    def get_costs(dataset, pi, cost_data=None, SD=False):
         # Check that tours are valid, i.e. contain 0 to n -1
         assert (
             torch.arange(pi.size(1), out=pi.data.new()).view(1, -1).expand_as(pi) ==
@@ -29,10 +29,17 @@ class TSP(object):
             cost = torch.stack([reorder_cost_data[:, i, j] for i, j in zip(s1, s2)]).sum(0)
             return cost, None
         
-        # Gather dataset in order of tour
-        d = dataset.gather(1, pi.unsqueeze(-1).expand_as(dataset))
-        # Length is distance (L2-norm of difference) from each next location from its prev and of last from first
-        return (d[:, 1:] - d[:, :-1]).norm(p=2, dim=2).sum(1) + (d[:, 0] - d[:, -1]).norm(p=2, dim=1), None
+        elif SD:
+            cost = sequence_deviation(pi)
+            #print('cost in get_costs method:', cost)
+            return cost, None
+        
+        else:
+            # Gather dataset in order of tour
+            d = dataset.gather(1, pi.unsqueeze(-1).expand_as(dataset))
+            # Length is distance (L2-norm of difference) from each next location from its prev and of last from first
+            print('normal euclidean distance cost')
+            return (d[:, 1:] - d[:, :-1]).norm(p=2, dim=2).sum(1) + (d[:, 0] - d[:, -1]).norm(p=2, dim=1), None
 
     @staticmethod
     def make_dataset(*args, **kwargs):
@@ -80,7 +87,7 @@ class TSPDataset(Dataset):
                 if os.path.exists(filename_cost):
                     with open(filename_cost, 'rb') as f:
                         data = pickle.load(f)
-                        self.cost_data = [torch.FloatTensor(row) for row in (data[offset:offset+num_samples])]
+                        self.cost_data = [torch.FloatTensor(row) for row in data]
                 else:
                     self.cost_data = None
             else:
@@ -91,6 +98,7 @@ class TSPDataset(Dataset):
             self.cost_data = None
         self.size = len(self.data)
 
+        #=====for data preprocessing: the sequence of coordinates input should be the drivers sequence========#
         
         
     
@@ -101,6 +109,7 @@ class TSPDataset(Dataset):
         return self.data[idx]
 
     def shuffle_data(self):
+        random.seed(None)
         if self.cost_data:
             temp = list(zip(self.data, self.cost_data))
             random.shuffle(temp)

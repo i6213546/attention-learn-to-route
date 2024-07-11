@@ -176,7 +176,7 @@ def do_batch_rep(v, n):
     return v[None, ...].expand(n, *v.size()).contiguous().view(-1, *v.size()[1:])
 
 
-def sample_many(inner_func, get_cost_func, input, batch_rep=1, iter_rep=1):
+def sample_many(inner_func, get_cost_func, input, cost_data=None, SD=False, batch_rep=1, iter_rep=1):
     """
     :param input: (batch_size, graph_size, node_dim) input node features
     :return:
@@ -188,7 +188,7 @@ def sample_many(inner_func, get_cost_func, input, batch_rep=1, iter_rep=1):
     for i in range(iter_rep):
         _log_p, pi = inner_func(input)
         # pi.view(-1, batch_rep, pi.size(-1))
-        cost, mask = get_cost_func(input, pi)
+        cost, mask = get_cost_func(input, pi, cost_data=cost_data, SD=SD)
 
         costs.append(cost.view(batch_rep, -1).t())
         pis.append(pi.view(batch_rep, -1, pi.size(-1)).transpose(0, 1))

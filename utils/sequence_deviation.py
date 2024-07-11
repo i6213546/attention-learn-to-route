@@ -2,11 +2,21 @@ import numpy as np
 import torch
 def sequence_deviation(output_sequences):
     """
-    output_sequences should be a list of list (2 dim)
+    output_sequences should be a list of lists (2D list)
     return: standard deviation of each sequence
     """
-    a = [2*np.sum([np.abs(seq[i+1] - seq[i]) -1 for i in range(len(seq)-1)])/(len(seq) * (len(seq)-1)) for seq in output_sequences]
-    return a
+    # deviations = []
+    # for seq in output_sequences:
+    #     #seq_tensor = torch.tensor(seq, dtype=torch.float32)
+    #     diffs = torch.abs(seq[1:] - seq[:-1]) - 1
+    #     deviation = 2 * torch.sum(diffs) / (len(seq) * (len(seq) - 1))
+    #     deviations.append(deviation.item())
+    if not isinstance(output_sequences, torch.Tensor):
+        output_sequences = [torch.tensor(i, dtype=torch.int64) for i in output_sequences]
+        output_sequences = torch.stack(output_sequences)
+    length = output_sequences.size(1)
+    SD = 2*torch.sum(torch.abs(output_sequences[:,1:] - output_sequences[:,:-1]) - 1, 1)/(length * (length-1))
+    return SD
 
 def rearrange_output_vs_driver(random_indices, pi):
     """"

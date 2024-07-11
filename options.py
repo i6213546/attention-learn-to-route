@@ -12,8 +12,8 @@ def get_options(args=None):
     # Data
     parser.add_argument('--problem', default='tsp', help="The problem to solve, default 'tsp'")
     parser.add_argument('--graph_size', type=int, default=20, help="The size of the problem graph")
-    parser.add_argument('--batch_size', type=int, default=512, help='Number of instances per batch during training')
-    parser.add_argument('--epoch_size', type=int, default=1280000, help='Number of instances per epoch during training')
+    parser.add_argument('--batch_size', type=int, default=150, help='Number of instances per batch during training') #change from 521 to 256 as we have way less data
+    parser.add_argument('--epoch_size', type=int, default=15000, help='Number of instances per epoch during training')
     parser.add_argument('--train_dataset', type=str, default=None, help='Dataset file to use for training')
     parser.add_argument('--val_size', type=int, default=10000,
                         help='Number of instances used for reporting validation performance')
@@ -23,7 +23,13 @@ def get_options(args=None):
                         help='Number of instances used for reporting model evaluation performance')
     parser.add_argument('--eval_dataset', type=str, default=None, help='Dataset file to use for evaluation')
 
+    parser.add_argument('--test_size', type=int, default=10000,
+                        help='Number of instances used for reporting model evaluation performance')
+    parser.add_argument('--test_dataset', type=str, default=None, help='Dataset file to use for evaluation')
+
     parser.add_argument('--cost_input', type=str, default=None, help='Cost input data to use instead of computing Euclidean distance')
+
+    parser.add_argument('--use_SD', type=str, default=None, help='Use standard deviation as cost function instead of Euclidean distance')
 
     # Model
     parser.add_argument('--model', default='attention', help="Model, 'attention' (default) or 'pointer'")
@@ -55,7 +61,7 @@ def get_options(args=None):
     parser.add_argument('--bl_warmup_epochs', type=int, default=None,
                         help='Number of epochs to warmup the baseline, default None means 1 for rollout (exponential '
                              'used for warmup phase), 0 otherwise. Can only be used with rollout baseline.')
-    parser.add_argument('--eval_batch_size', type=int, default=1024,
+    parser.add_argument('--eval_batch_size', type=int, default=250,
                         help="Batch size to use during (baseline) evaluation")
     parser.add_argument('--checkpoint_encoder', action='store_true',
                         help='Set to decrease memory usage by checkpointing encoder')
@@ -84,11 +90,11 @@ def get_options(args=None):
     opts.use_cuda = torch.cuda.is_available() and not opts.no_cuda
     opts.run_name = "{}_{}".format(opts.run_name, time.strftime("%Y%m%dT%H%M%S"))
     
-    opts.dir_existed = False
+    opts.checkpoint_epoch = None
     if opts.eval_only:
-        if opts.resume:
-            opts.save_dir = os.path.join(*opts.resume.split('/')[:-1])
-            opts.dir_existed = True
+        if opts.load_path:
+            opts.save_dir = os.path.join(*opts.load_path.split('/')[:-1])
+            opts.checkpoint_epoch = os.path.split(opts.load_path)[-1][:-3]
         else:
             opts.save_dir = os.path.join(opts.output_dir,
                                         "{}_{}".format(opts.problem, opts.graph_size),
@@ -97,8 +103,14 @@ def get_options(args=None):
     else:
         opts.save_dir = os.path.join(opts.output_dir,
                                     "{}_{}".format(opts.problem, opts.graph_size),
-                                    opts.run_name
+                                    "{}_{}_{}_{}epochs".format(opts.run_name, opts.lr_model, opts.lr_decay, opts.n_epochs)
                                     )
+
+    #opts.save_dir='outputs/tsp_100/test'
+    if opts.train_dataset:
+        with open(opts.train_dataset, 'rb') as file:
+            temp = pickle.load(file)
+            opts.epoch_size = len(temp)
 
     if opts.val_dataset:
         with open(opts.val_dataset, 'rb') as file:
@@ -110,8 +122,22 @@ def get_options(args=None):
             temp = pickle.load(file)
             opts.eval_size = len(temp)
     
-    assert(opts.eval_size == opts.val_size)
-
+    if opts.test_dataset:
+        with open(opts.test_dataset, 'rb') as file:
+            temp = pickle.load(file)
+            opts.test_size = len(temp)
+    
+    #assert(opts.eval_size == opts.val_size)
+    if opts.cost_input != None and not opts.eval_only:
+        opts.save_dir = opts.save_dir + '_cost'
+    if opts.use_SD != None:
+        opts.SD = True
+        if  not opts.eval_only:
+            opts.save_dir = opts.save_dir + '_SD'
+    else:
+        opts.SD = False
+    if opts.n_encode_layers != 3 and not opts.eval_only:
+        opts.save_dir = opts.save_dir + '_{}layers'.format(opts.n_encode_layers)
     if opts.bl_warmup_epochs is None:
         opts.bl_warmup_epochs = 1 if opts.baseline == 'rollout' else 0
     assert (opts.bl_warmup_epochs == 0) or (opts.baseline == 'rollout')

@@ -1,17 +1,15 @@
-import math
-import torch
-import os
-import argparse
+import math, torch, os, argparse, time, random
 import numpy as np
 import itertools
 from tqdm import tqdm
 from utils import load_model, move_to
 from utils.data_utils import save_dataset
 from torch.utils.data import DataLoader
-import time
 from datetime import timedelta
 from utils.functions import parse_softmax_temperature
 from utils.sequence_deviation import sequence_deviation
+from train import shift_row
+
 mp = torch.multiprocessing.get_context('spawn')
 
 
@@ -69,6 +67,7 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     else:
         device = torch.device("cuda:0" if use_cuda else "cpu")
         dataset = model.problem.make_dataset(filename=dataset_path, num_samples=opts.val_size, cost_input=opts.cost_input, offset=opts.offset)
+        #[random.shuffle(j) for i in dataset.data for j in i]
         results = _eval_dataset(model, dataset, width, softmax_temp, opts, device)
 
     # This is parallelism, even if we use multiprocessing (we report as if we did not use multiprocessing, e.g. 1 GPU)
@@ -87,22 +86,24 @@ def eval_dataset(dataset_path, width, softmax_temp, opts):
     if opts.o is None:
         results_dir = os.path.join(opts.results_dir, model.problem.NAME, dataset_basename)
         os.makedirs(results_dir, exist_ok=True)
-
-        out_file = os.path.join(results_dir, "{}-{}-{}{}-t{}-{}-{}{}".format(
-            dataset_basename, model_name,
-            opts.decode_strategy,
-            width if opts.decode_strategy != 'greedy' else '',
-            softmax_temp, opts.offset, opts.offset + len(costs), ext
-        ))
+        if opts.model[-2:] != 'pt':
+            out_file = os.path.join(results_dir, "{}-{}".format(
+            opts.model.split('/')[-1],
+            opts.decode_strategy))
+        else:
+            out_file = os.path.join(results_dir, "{}-{}".format(
+            opts.model.split('/')[-2]+'_'+opts.model.split('/')[-1],
+            opts.decode_strategy))
     else:
         out_file = opts.o
 
     assert opts.f or not os.path.isfile(
         out_file), "File already exists! Try running with -f option to overwrite."
 
-    save_dataset((results, parallelism), out_file)
+    #if opts.save_dataset:
+    #    save_dataset(tours, out_file)
 
-    return costs, tours, durations
+    return list(costs), list(tours), list(durations)
 
 
 def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
@@ -114,17 +115,14 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
         temp=softmax_temp)
 
     dataloader = DataLoader(dataset, batch_size=opts.eval_batch_size)
-    cost_input = False
-    cost_dataloader = None
-    if dataset.cost_data:
-        cost_input = True
+    if opts.cost_input:
         cost_dataloader = DataLoader(dataset.cost_data, batch_size=opts.eval_batch_size)
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
 
     results = []
     for id, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         batch = move_to(batch, device)
-        if cost_input:
+        if opts.cost_input:
             cost_data = move_to(cost_dataloader[id], device)
         else:
             cost_data = None
@@ -137,7 +135,9 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                         "eval_batch_size should be smaller than calc batch size"
                     batch_rep = 1
                     iter_rep = 1
-                elif width * opts.eval_batch_size > opts.max_calc_batch_size:
+                elif width * opts.eval_batch_size > opts.max_calc_batch_size: #(width*1024 > 10000)
+                    #opts.eval_batch_size = 1
+                    #opts.max_calc_batch_size = width
                     assert opts.eval_batch_size == 1
                     assert width % opts.max_calc_batch_size == 0
                     batch_rep = opts.max_calc_batch_size
@@ -147,7 +147,7 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                     iter_rep = 1
                 assert batch_rep > 0
                 # This returns (batch_size, iter_rep shape)
-                sequences, costs = model.sample_many(batch, cost_data=cost_data, batch_rep=batch_rep, iter_rep=iter_rep)
+                sequences, costs = model.sample_many(batch, cost_data=cost_data, SD=opts.SD, batch_rep=batch_rep, iter_rep=iter_rep)
                 batch_size = len(costs)
                 ids = torch.arange(batch_size, dtype=torch.int64, device=costs.device)
             else:
@@ -187,15 +187,18 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    
     parser.add_argument("datasets", nargs='+', help="Filename of the dataset(s) to evaluate")
     parser.add_argument("-f", action='store_true', help="Set true to overwrite")
     parser.add_argument("-o", default=None, help="Name of the results file to write")
-    parser.add_argument('--val_size', type=int, default=10000,
+    parser.add_argument('--val_size', type=int, default=2500,
                         help='Number of instances used for reporting validation performance')
     parser.add_argument('--offset', type=int, default=0,
                         help='Offset where to start in dataset (default 0)')
     parser.add_argument('--cost_input', type=str, default=None, 
                         help='Cost input data to use instead of computing Euclidean distance')
+    parser.add_argument('--SD', type=bool, default=False, 
+                        help='Computing sequence deviation as cost instead of Euclidean distance')
     parser.add_argument('--eval_batch_size', type=int, default=1024,
                         help="Batch size to use during (baseline) evaluation")
     # parser.add_argument('--decode_type', type=str, default='greedy',
@@ -215,7 +218,8 @@ if __name__ == "__main__":
     parser.add_argument('--results_dir', default='results', help="Name of results directory")
     parser.add_argument('--multiprocessing', action='store_true',
                         help='Use multiprocessing to parallelize over multiple GPUs')
-
+    parser.add_argument('--save_dataset', type=bool, default=True,
+                        help='Save results')
     opts = parser.parse_args()
 
     assert opts.o is None or (len(opts.datasets) == 1 and len(opts.width) <= 1), \
@@ -223,10 +227,14 @@ if __name__ == "__main__":
 
     widths = opts.width if opts.width is not None else [0]
 
+    print(widths)
     for width in widths:
         for dataset_path in opts.datasets:
             costs, tours, duration = eval_dataset(dataset_path, width, opts.softmax_temperature, opts)
-            print('sequence deviation:', np.mean(sequence_deviation(tours)))
-            print(tours)
+            tours = torch.stack([shift_row(torch.tensor(i, dtype=torch.int64)) for i in tours])
+            max = np.argmax(costs)
+            print(tours[max])
+            print(np.max(costs), np.min(costs))
+            print(sequence_deviation(tours).mean())
 
-#python eval.py data/tsp/val_location.pkl --model outputs/tsp_100/tsp100_rollout_20240525_nocost --decode_strategy greedy -f
+#python eval.py data/tsp/test_location.pkl --model outputs/tsp_100/tsp100_rollout_0.001_0.96_100epochs_SD/epoch-99.pt --decode_strategy sample -f --width 1

@@ -50,7 +50,7 @@ def rollout(model, dataset, opts, return_pi=False):
 
     def eval_model_bat(bat, bat_id):
         with torch.no_grad():
-            if dataset.cost_data != None:
+            if opts.cost_input:
                 cost_metric = dataset.cost_data[opts.eval_batch_size*bat_id : 
                                             opts.eval_batch_size*(bat_id+1)]
                 if isinstance(cost_metric, list):
@@ -63,12 +63,12 @@ def rollout(model, dataset, opts, return_pi=False):
                     cost, _ = model(move_to(bat, opts.device), cost_data=move_to(cost_metric, opts.device))
                     return cost.data.cpu()
             else:
-                print("not access to the cost data")
                 if return_pi:
-                    cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi)
+                    cost, _, pi = model(move_to(bat, opts.device), return_pi=return_pi, SD=opts.SD)
+                    #print('cost in rollout:', cost[:10])
                     return cost.data.cpu(), pi.data.cpu()
                 else:
-                    cost, _ = model(move_to(bat, opts.device))
+                    cost, _ = model(move_to(bat, opts.device), SD=opts.SD)
                     return cost.data.cpu()
         
     if return_pi:
@@ -106,7 +106,9 @@ def clip_grad_norms(param_groups, max_norm=math.inf):
         )
         for group in param_groups
     ]
+    mean_grad_norms = np.mean(grad_norms)
     grad_norms_clipped = [min(g_norm, max_norm) for g_norm in grad_norms] if max_norm > 0 else grad_norms
+    #grad_norms_clipped = [min(g_norm, mean_grad_norms) for g_norm in grad_norms]
     return grad_norms, grad_norms_clipped
 
 
@@ -126,48 +128,46 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     print('baseline:', baseline)
     print('baseline alpha:', baseline.alpha)
-    training_dataset = baseline.wrap_dataset(training)
+    training_dataset    = baseline.wrap_dataset(training)
     training_dataloader = DataLoader(training_dataset, batch_size=opts.batch_size, num_workers=1)
 
     if opts.cost_input:
         cost_dataloader = DataLoader(training_dataset.cost_data, batch_size=opts.batch_size, num_workers=1)
 
         cost_dataloader = [batch for id, batch in enumerate(cost_dataloader)]
-    # Create an empty list to store sets of indices for each batch
-    #indices_per_batch = []
-    # Iterate over batches
-    #for batch_indices in batch_sampler:
-    #    indices_per_batch.append(list(batch_indices))
     
     # Put model in train mode!
     model.train()
-    set_decode_type(model, "greedy")
-    training_cost = []
-
+    set_decode_type(model, "sampling")
+    training_cost    = []
+    training_bl_cost = []
     for batch_id, batch in enumerate(tqdm(training_dataloader, disable=opts.no_progress_bar)):
         if opts.cost_input:
             cost_data = cost_dataloader[batch_id]
-        else: cost_data = None
-        cost_bat = train_batch(
-                    model,
-                    optimizer,
-                    baseline,
-                    epoch,
-                    batch_id,
-                    step,
-                    batch,
-                    tb_logger,
-                    opts,
-                    cost_data=cost_data
-                    )
+        else: 
+            cost_data = None
+
+        cost_bat, bl_bat = train_batch(
+                            model,
+                            optimizer,
+                            baseline,
+                            epoch,
+                            batch_id,
+                            step,
+                            batch,
+                            tb_logger,
+                            opts,
+                            cost_data=cost_data
+                            )
         training_cost.append(cost_bat)
+        training_bl_cost.append(bl_bat)
         step += 1
 
     epoch_duration = time.time() - start_time
     print("Finished epoch {}, took {} s".format(epoch, time.strftime('%H:%M:%S', time.gmtime(epoch_duration))))
     #print("Cost in this epoch:", np.sum(training_cost))
-    #if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
-    if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1) or epoch==0:
+    if (opts.checkpoint_epochs != 0 and epoch % opts.checkpoint_epochs == 0) or epoch == opts.n_epochs - 1:
+    #if (epoch+1) % 10 == 0 or epoch == (opts.n_epochs-1) or epoch==0:
         print('Saving model and state...')
         torch.save(
             {
@@ -186,11 +186,10 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
         tb_logger.log_value('val_avg_reward', avg_reward, step)
 
     candidate_mean = baseline.epoch_callback(model, epoch)
-    print('candidate mean:', candidate_mean)
     # lr_scheduler should be called  end of epoch
     lr_scheduler.step()
 
-    return np.sum(training_cost)/training.size, candidate_mean, avg_reward
+    return np.sum(training_cost)/training.size, np.sum(training_bl_cost)/training.size, candidate_mean, baseline.baseline.mean, avg_reward
 
 def train_batch(
         model,
@@ -203,13 +202,14 @@ def train_batch(
         tb_logger,
         opts,
         cost_data=None
-):
+):  
+    
     x, bl_val = baseline.unwrap_batch(batch)
     x = move_to(x, opts.device)
     bl_val = move_to(bl_val, opts.device) if bl_val is not None else None
 
     # Evaluate model, get costs and log probabilities
-    cost, log_likelihood = model(x, cost_data=cost_data)
+    cost, log_likelihood = model(x, cost_data=cost_data, SD=opts.SD)
 
     # Evaluate baseline, get baseline loss if any (only for critic)
     bl_val, bl_loss = baseline.eval(x, cost) if bl_val is None else (bl_val, 0)
@@ -218,6 +218,7 @@ def train_batch(
     reinforce_loss = ((cost - bl_val) * log_likelihood).mean()
     loss = reinforce_loss + bl_loss
 
+    #print(cost - bl_val)
     # Perform backward pass and optimization step
     optimizer.zero_grad()
     loss.backward()
@@ -229,5 +230,6 @@ def train_batch(
     if step % int(opts.log_step) == 0:
         log_values(cost, grad_norms, epoch, batch_id, step,
                    log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
+        print('epoch: {}, train_batch_id: {}, avg bl cost: {}'.format(epoch, batch_id, bl_val.mean().item()))
     
-    return cost.sum().item()
+    return cost.sum().item(), bl_val.sum().item()
