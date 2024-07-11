@@ -445,3 +445,4 @@ if __name__ == "__main__":
         print("Calculated total duration: {}".format(timedelta(seconds=int(np.sum(durations) / parallelism))))
 
         save_dataset((results, parallelism), out_file)
+        #save_dataset(tours, 'nearest_neighbor.pkl')

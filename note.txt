@@ -12,7 +12,7 @@ code changed:
     TSP problem file:
         * pre defined dataset
         * add cost data into init
-        * suffle data if needed
+        * shuffle data if needed
         * change get_costs static function: add optional cost_data parameters and change cost return
 
     get_options.py file:

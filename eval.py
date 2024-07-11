@@ -135,7 +135,9 @@ def _eval_dataset(model, dataset, width, softmax_temp, opts, device):
                         "eval_batch_size should be smaller than calc batch size"
                     batch_rep = 1
                     iter_rep = 1
-                elif width * opts.eval_batch_size > opts.max_calc_batch_size:
+                elif width * opts.eval_batch_size > opts.max_calc_batch_size: #(width*1024 > 10000)
+                    #opts.eval_batch_size = 1
+                    #opts.max_calc_batch_size = width
                     assert opts.eval_batch_size == 1
                     assert width % opts.max_calc_batch_size == 0
                     batch_rep = opts.max_calc_batch_size
@@ -235,4 +237,4 @@ if __name__ == "__main__":
             print(np.max(costs), np.min(costs))
             print(sequence_deviation(tours).mean())
 
-#python eval.py data/tsp/test_location.pkl --model outputs/tsp_100/tsp100_rollout_20240611T092533_0.01_0.96_100epochs_SD/epoch-99.pt --decode_strategy sample -f --width 1
+#python eval.py data/tsp/test_location.pkl --model outputs/tsp_100/tsp100_rollout_0.001_0.96_100epochs_SD/epoch-99.pt --decode_strategy sample -f --width 1
