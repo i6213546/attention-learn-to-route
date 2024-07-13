@@ -121,4 +121,4 @@ if __name__ == "__main__":
         pickle.dump(tours_nn, f, pickle.HIGHEST_PROTOCOL)
     
     ############ run script ##################
-    # python -m problems.tsp.gurobi
+    # python -m problems.tsp.gurobi_nn
